@@ -1,0 +1,73 @@
+
+pw = new ParallelWaiter 3, (data) ->
+  pdf = new PDFAppend data.pdfStr
+  
+  jpegObj = pdf.addObj data.jpegStr, null, PDFJPEG
+  pngObj  = pdf.addObj data.pngStr,  null, PDFPNG
+
+  text1 = PDFText.preprocessPara("Affluent finance AWAY 6×6 £12 €13 – 15 x hello—again LOVE HATE YOU ME 123‰ Höhner 2πr. Lorem ipsum do-lor sit amet, consectetur adip-iscing elit. Ut eu augue nec nunc pellentesquelaoreeteuatnuncphasellusnonmagnai arcu consequat tincidunt sit amet conv-allis eros. In pellen–tesque pellentesque felis, ac varius nulla vehicula id. Sed rut-rum, quam nec semper dapibus, mi lorem adipiscing lectus, vel bibendum lorem erat quis neque. pellentesquelaoreeteuatnuncphasellusnonmagnaidconesqyatys x", 'Times-Roman', no)
+  
+  text2 = PDFText.preprocessPara("The wind was a torrent of darkness among the gusty fleas, The moon was a ghostly galleon tossed upon cloudy seas, The road was a ribbon of moonlight over the purple moor, And the highwayman came riding— Riding—riding— The highwayman came fiding, up to the old inn-door.", 'Times-Roman')
+  
+  textStream = pdf.addObj """
+    BT
+      72 600 Td
+      /TR 12 Tf
+      #{PDFText.flowPara(text1, 12, {maxWidth: 250, align: 'full'}).commands}
+    ET
+    BT
+      72 300 Td
+      /TR 14 Tf
+      #{PDFText.flowPara(text2, 14, {maxWidth: 420, align: 'right', lineHeight: 1.4}).commands}
+      0 -8 Td
+      #{PDFText.flowPara(text2, 14, {maxWidth: 420, align: 'left', lineHeight: 1.1}).commands}
+    ET
+    q
+      72 0 0 72 400 400 cm  % scaleX 0 0 scaleY translateX translateY
+      /MyIm Do  
+    Q
+    q
+      72 0 0 72 400 600 cm  % scaleX 0 0 scaleY translateX translateY
+      /MyIm2 Do  
+    Q
+    """, null, PDFStream
+
+  pdf.addObj """
+    <<
+    /Parent 2 0 R
+    /MediaBox [0 0 595 842]
+    /Resources 3 0 R
+    /pdftk_PageNum 1
+    /Contents [4 0 R #{textStream.ref}]
+    /Type /Page
+    >>
+    """, 1
+  
+  fontObj = pdf.addObj 'Times-Roman', null, PDFBuiltInFont
+  
+  pdf.addObj """
+    <<
+    /ColorSpace 
+      <<
+      /Cs1 5 0 R
+      >>
+    /XObject 
+      <<
+      /Im1 6 0 R
+      /MyIm #{jpegObj.ref}
+      /MyIm2 #{pngObj.ref}
+      >>
+    /Font 
+      <<
+      /TT1.0 7 0 R
+      /TR #{fontObj.ref}
+      >>
+    /ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+    >>
+    """, 3
+  
+  make tag: 'a', href: pdf.asDataURI(), text: 'PDF', parent: get(tag: 'body')
+
+xhr url: 'pdf/kernligimg.uc.pdf', binary: yes, success: (req) -> pw.done 'pdfStr',  req.responseText
+xhr url: 'images/pound-coin.jpg', binary: yes, success: (req) -> pw.done 'jpegStr', req.responseText
+xhr url: 'images/basn3p01.png',   binary: yes, success: (req) -> pw.done 'pngStr',  req.responseText
