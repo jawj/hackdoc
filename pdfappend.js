@@ -101,13 +101,13 @@
     PDFPNG.identify = function(png) {
       var r;
       r = new BinStringReader(png);
-      return r.chars(8) === PDFPNG.header;
+      return r.chars(PDFPNG.header.length) === PDFPNG.header;
     };
 
     function PDFPNG(objNum, png, pdf) {
       var bits, chunkSize, colorSpace, colorType, colors, compressionMethod, filterMethod, height, imageData, interlaceMethod, palette, paletteObj, r, section, width;
       r = new BinStringReader(png);
-      if (r.chars(8) !== PDFPNG.header) {
+      if (r.chars(PDFPNG.header.length) !== PDFPNG.header) {
         this.error = 'Invalid header in PNG';
         return;
       }
@@ -241,19 +241,19 @@
     };
 
     PDFText.widthify = function(words, fontName) {
-      var TJData, char, charCount, charWidth, endWidth, i, kernWidth, kerning, midWidth, nextChar, nextWord, nextWordChar, seenSpace, spaceCount, str, widths, word, _i, _j, _len, _ref, _ref1, _results;
+      var TJData, char, charCount, charWidth, endWidth, i, kernWidth, kerning, midWidth, nextChar, nextWord, nextWordChar, seenSpace, spaceCount, str, widths, word, _i, _j, _len, _ref, _results;
       widths = PDFText.metrics.widths[fontName];
       kerning = PDFText.metrics.kerning[fontName];
       _results = [];
       for (i = _i = 0, _len = words.length; _i < _len; i = ++_i) {
         word = words[i];
         nextWord = words[i + 1];
-        nextWordChar = (_ref = nextWord != null ? nextWord.charAt(0) : void 0) != null ? _ref : ' ';
-        word += nextWordChar;
+        nextWordChar = nextWord != null ? nextWord.charAt(0) : void 0;
+        word += nextWordChar != null ? nextWordChar : ' ';
         midWidth = endWidth = charCount = spaceCount = 0;
         seenSpace = false;
         str = TJData = '';
-        for (i = _j = 0, _ref1 = word.length - 1; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
+        for (i = _j = 0, _ref = word.length - 1; 0 <= _ref ? _j < _ref : _j > _ref; i = 0 <= _ref ? ++_j : --_j) {
           char = word.charAt(i);
           nextChar = word.charAt(i + 1);
           seenSpace || (seenSpace = char === ' ');
@@ -301,7 +301,7 @@
     };
 
     PDFText.flowPara = function(para, fontSize, opts) {
-      var TJData, charCount, charCounts, charSpace, charSpaceFactor, charStretch, commands, finishLine, height, i, leading, line, lines, minusLSpace, minusRSpace, numLines, scaledLineWidth, scaledLineWidths, scaledMaxWidth, scaledWidth, spaceCount, spaceCounts, stretchFactor, width, willExceedHeight, willWrap, word, wordSpace, wordSpaceFactor, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+      var TJData, charCount, charCounts, charSpace, charSpaceFactor, charStretch, commands, finishLine, fix, height, i, leading, line, lines, minusLSpace, minusRSpace, numLines, scaledLineWidth, scaledLineWidths, scaledMaxWidth, scaledWidth, spaceCount, spaceCounts, stretchFactor, width, willExceedHeight, willWrap, word, wordSpace, wordSpaceFactor, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
       if ((_ref = opts.maxWidth) == null) {
         opts.maxWidth = Infinity;
       }
@@ -316,9 +316,9 @@
       }
       if ((_ref4 = opts.justify) == null) {
         opts.justify = {
-          wordSpaceFactor: 0.42,
-          charSpaceFactor: 0.42,
-          stretchFactor: 0.16
+          wordSpaceFactor: 0.45,
+          charSpaceFactor: 0.40,
+          stretchFactor: 0.15
         };
       }
       para = para.slice(0);
@@ -330,6 +330,9 @@
       scaledLineWidths = [];
       charCounts = [];
       spaceCounts = [];
+      fix = function(n) {
+        return n.toFixed(3).replace(/\.?0+$/, '');
+      };
       finishLine = function() {
         var lastWord;
         lastWord = line[line.length - 1];
@@ -365,7 +368,7 @@
         }
       }
       scaledWidth = 0;
-      commands = "" + (leading.toFixed(3)) + " TL 0.000 Tw 0.000 Tc 100.000 Tz\n";
+      commands = "" + (fix(leading)) + " TL 0 Tw 0 Tc 100 Tz\n";
       numLines = lines.length;
       for (i = _i = 0, _len = lines.length; _i < _len; i = ++_i) {
         line = lines[i];
@@ -379,10 +382,10 @@
         minusLSpace = (function() {
           switch (opts.align) {
             case 'right':
-              return minusRSpace.toFixed(3) + ' ';
+              return fix(minusRSpace) + ' ';
             case 'centre':
             case 'center':
-              return (minusRSpace / 2).toFixed(3) + ' ';
+              return fix(minusRSpace / 2) + ' ';
             default:
               return '';
           }
@@ -403,7 +406,7 @@
             charSpace = -charSpaceFactor * minusRSpace / (charCount - 1) / 1000 * fontSize;
             charStretch = 100 / (1 - (-minusRSpace * stretchFactor / scaledMaxWidth));
           }
-          commands += "" + (wordSpace.toFixed(3)) + " Tw " + (charSpace.toFixed(3)) + " Tc " + (charStretch.toFixed(3)) + " Tz ";
+          commands += "" + (fix(wordSpace)) + " Tw " + (fix(charSpace)) + " Tc " + (fix(charStretch)) + " Tz ";
         }
         TJData = (function() {
           var _j, _len1, _results;

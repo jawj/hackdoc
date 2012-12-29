@@ -90,11 +90,11 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
   @header = '\x89PNG\r\n\x1a\n'
   @identify = (png) ->
     r = new BinStringReader png
-    r.chars(8) is PDFPNG.header
+    r.chars(PDFPNG.header.length) is PDFPNG.header
   
   constructor: (objNum, png, pdf) ->
     r = new BinStringReader png
-    unless r.chars(8) is PDFPNG.header
+    unless r.chars(PDFPNG.header.length) is PDFPNG.header
       @error = 'Invalid header in PNG'
       return
       
@@ -119,12 +119,12 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
           break
         else 
           r.skip chunkSize
-      r.skip 4  # CRC
+      r.skip 4  # chunk CRC
     
     @error = 'Unsupported compression in PNG' if compressionMethod isnt 0  # only 0 is in PNG spec
     @error = 'Unsupported filter in PNG' if filterMethod isnt 0            # ditto
-    @error = 'Unsupported interlacing in PNG' if interlaceMethod isnt 0    # Adam7 (1) unsupported here
-    @error = 'Unsupported alpha channel in PNG' if colorType in [4, 6]     # ditto for alpha transparency
+    @error = 'Unsupported interlacing in PNG' if interlaceMethod isnt 0    # don't support Adam7 (1)
+    @error = 'Unsupported alpha channel in PNG' if colorType in [4, 6]     # don't support alpha transparency
     return if @error?
     
     colors = switch colorType
@@ -194,14 +194,14 @@ class @PDFText
     
     for word, i in words
       nextWord = words[i + 1]
-      nextWordChar = nextWord?.charAt(0) ? ' '
-      word += nextWordChar
+      nextWordChar = nextWord?.charAt(0)
+      word += nextWordChar ? ' '
       
       midWidth = endWidth = charCount = spaceCount = 0
       seenSpace = no
       str = TJData = ''
       
-      for i in [0...(word.length - 1)]
+      for i in [0...(word.length - 1)]  # exclude final char, which is part of next word (or a space)
         char = word.charAt i
         nextChar = word.charAt(i + 1)
         
@@ -232,18 +232,21 @@ class @PDFText
     opts.maxWidth   ?= Infinity
     opts.maxHeight  ?= Infinity
     opts.lineHeight ?= 1.25
-    opts.align      ?= 'left'  # or 'right', 'centre'/'center', 'full' (in which case disable ligatures)
-    opts.justify    ?= {wordSpaceFactor: 0.42, charSpaceFactor: 0.42, stretchFactor: 0.16}
+    opts.align      ?= 'left'  # or 'right', 'centre', 'full' (in which case, remember: disable ligatures)
+    opts.justify    ?= {wordSpaceFactor: 0.45, charSpaceFactor: 0.40, stretchFactor: 0.15}
     
     para = para[0..]  # copy
     scaledMaxWidth  = opts.maxWidth * 1000 / fontSize
     leading = fontSize * opts.lineHeight
     scaledWidth = height = scaledLineWidth = charCount = spaceCount = 0
     line = []
+    
     lines = []
     scaledLineWidths = []
     charCounts = []
     spaceCounts = []
+    
+    fix = (n) -> n.toFixed(3).replace /\.?0+$/, ''
     
     finishLine = ->
       lastWord = line[line.length - 1]
@@ -277,7 +280,7 @@ class @PDFText
       finishLine() if para.length is 0
     
     scaledWidth = 0
-    commands = "#{leading.toFixed 3} TL 0.000 Tw 0.000 Tc 100.000 Tz\n"
+    commands = "#{fix leading} TL 0 Tw 0 Tc 100 Tz\n"
     numLines = lines.length
     for line, i in lines
       scaledLineWidth = scaledLineWidths[i]
@@ -286,8 +289,8 @@ class @PDFText
       scaledWidth = scaledLineWidth if scaledWidth < scaledLineWidth
       minusRSpace = scaledLineWidth - scaledMaxWidth
       minusLSpace = switch opts.align
-        when 'right' then minusRSpace.toFixed(3) + ' '
-        when 'centre', 'center' then (minusRSpace / 2).toFixed(3) + ' '
+        when 'right' then fix(minusRSpace) + ' '
+        when 'centre', 'center' then fix(minusRSpace / 2) + ' '
         else ''  # left and full
       if opts.align is 'full'
         if i is lines.length - 1 and minusRSpace < 0  # do nothing to last line unless too long
@@ -303,7 +306,7 @@ class @PDFText
             wordSpace = - wordSpaceFactor * minusRSpace / spaceCount / 1000 * fontSize
           charSpace = - charSpaceFactor * minusRSpace / (charCount - 1) / 1000 * fontSize
           charStretch = 100 / (1 - (- minusRSpace * stretchFactor / scaledMaxWidth))
-        commands += "#{wordSpace.toFixed(3)} Tw #{charSpace.toFixed(3)} Tc #{charStretch.toFixed(3)} Tz "
+        commands += "#{fix wordSpace} Tw #{fix charSpace} Tc #{fix charStretch} Tz "
       
       TJData = (word.TJData for word in line)
       commands += "[ #{minusLSpace}#{TJData.join('').replace /> </g, ''}] TJ T*\n"
@@ -314,6 +317,7 @@ class @PDFText
 
 class @PDFBuiltInFont extends PDFObj
   constructor: (objNum, fontName) ->
+     # encoding matches metrics.js
     super objNum, """
       <<
       /Type /Font 
