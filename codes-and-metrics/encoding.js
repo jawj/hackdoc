@@ -202,19 +202,6 @@
     }).replace(/\}\,/g, '},\n'));
   });
 
-  /*
-      .replace /\\u[0-9a-f]{4}/gi, (hex) ->
-        dec = parseInt hex.replace(/\\u/, ''), 16
-        if dec >= 32 and dec <= 126
-          s = String.fromCharCode(dec)
-          if s is '\\' then '\\\\'
-          else if s is '"' then '\\"'
-          else s
-        else
-          hex
-  */
-
-
   xhr({
     url: "ROMAN.TXT",
     success: function(req) {
