@@ -309,7 +309,7 @@
         opts.maxHeight = Infinity;
       }
       if ((_ref2 = opts.lineHeight) == null) {
-        opts.lineHeight = 1.25;
+        opts.lineHeight = 1.3;
       }
       if ((_ref3 = opts.align) == null) {
         opts.align = 'left';

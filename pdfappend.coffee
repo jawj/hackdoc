@@ -231,7 +231,7 @@ class @PDFText
   @flowPara = (para, fontSize, opts) ->
     opts.maxWidth   ?= Infinity
     opts.maxHeight  ?= Infinity
-    opts.lineHeight ?= 1.25
+    opts.lineHeight ?= 1.3
     opts.align      ?= 'left'  # or 'right', 'centre', 'full' (in which case, remember: disable ligatures)
     opts.justify    ?= {wordSpaceFactor: 0.45, charSpaceFactor: 0.40, stretchFactor: 0.15}
     
