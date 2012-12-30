@@ -184,9 +184,9 @@ class @PDFText
   
   @paragraphize = (s) -> s.split /\r\n|\r|\n/
   @wordify = (s) -> 
-    arr = s.match /[^ —–-]*[—–-]? */g
-    arr.pop()  # last match always empty
-    arr
+    words = s.match /[^ —–-]*[—–-]? */g
+    words.pop()  # since last match always empty
+    words
   
   @widthify = (words, fontName) ->
     widths = PDFText.metrics.widths[fontName]
@@ -235,28 +235,22 @@ class @PDFText
     opts.align      ?= 'left'  # or 'right', 'centre', 'full' (in which case, remember: disable ligatures)
     opts.justify    ?= {wordSpaceFactor: 0.45, charSpaceFactor: 0.40, stretchFactor: 0.15}
     
+    scale = 1000 / fontSize
+    
     para = para[0..]  # copy
-    scaledMaxWidth  = opts.maxWidth * 1000 / fontSize
+    scaledMaxWidth = opts.maxWidth * scale
     leading = fontSize * opts.lineHeight
     scaledWidth = height = scaledLineWidth = charCount = spaceCount = 0
     line = []
-    
-    lines = []
-    scaledLineWidths = []
-    charCounts = []
-    spaceCounts = []
+    linesData = []
     
     fix = (n) -> n.toFixed(3).replace /\.?0+$/, ''
-    
     finishLine = ->
       lastWord = line[line.length - 1]
       scaledLineWidth += lastWord.endWidth - lastWord.midWidth
       charCount -= lastWord.spaceCount
       spaceCount -= lastWord.spaceCount
-      lines.push line
-      scaledLineWidths.push scaledLineWidth
-      charCounts.push charCount
-      spaceCounts.push spaceCount
+      linesData.push {line, scaledLineWidth, charCount, spaceCount}
       height += leading
     
     while para.length > 0
@@ -281,19 +275,17 @@ class @PDFText
     
     scaledWidth = 0
     commands = "#{fix leading} TL 0 Tw 0 Tc 100 Tz\n"
-    numLines = lines.length
-    for line, i in lines
-      scaledLineWidth = scaledLineWidths[i]
-      charCount = charCounts[i]
-      spaceCount = spaceCounts[i]
-      scaledWidth = scaledLineWidth if scaledWidth < scaledLineWidth
+    numLines = linesData.length
+    for lineData, i in linesData
+      {line, scaledLineWidth, charCount, spaceCount} = lineData
+      scaledWidth = scaledLineWidth if scaledLineWidth > scaledWidth
       minusRSpace = scaledLineWidth - scaledMaxWidth
       minusLSpace = switch opts.align
         when 'right' then fix(minusRSpace) + ' '
         when 'centre', 'center' then fix(minusRSpace / 2) + ' '
         else ''  # left and full
       if opts.align is 'full'
-        if i is lines.length - 1 and minusRSpace < 0  # do nothing to last line unless too long
+        if i is numLines - 1 and minusRSpace < 0  # do nothing to last line unless too long
           wordSpace = charSpace = 0
           charStretch = 100
         else
@@ -303,15 +295,15 @@ class @PDFText
             charSpaceFactor *= 1 / (1 - wordSpaceFactor)
             stretchFactor   *= 1 / (1 - wordSpaceFactor)
           else
-            wordSpace = - wordSpaceFactor * minusRSpace / spaceCount / 1000 * fontSize
-          charSpace = - charSpaceFactor * minusRSpace / (charCount - 1) / 1000 * fontSize
+            wordSpace = - wordSpaceFactor * minusRSpace / spaceCount / scale
+          charSpace = - charSpaceFactor * minusRSpace / (charCount - 1) / scale
           charStretch = 100 / (1 - (- minusRSpace * stretchFactor / scaledMaxWidth))
         commands += "#{fix wordSpace} Tw #{fix charSpace} Tc #{fix charStretch} Tz "
       
       TJData = (word.TJData for word in line)
       commands += "[ #{minusLSpace}#{TJData.join('').replace /> </g, ''}] TJ T*\n"
     
-    width = scaledWidth / 1000 * fontSize
+    width = scaledWidth / scale
     {commands, para, width, height}
   
 

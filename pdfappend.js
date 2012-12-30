@@ -234,10 +234,10 @@
     };
 
     PDFText.wordify = function(s) {
-      var arr;
-      arr = s.match(/[^ —–-]*[—–-]? */g);
-      arr.pop();
-      return arr;
+      var words;
+      words = s.match(/[^ —–-]*[—–-]? */g);
+      words.pop();
+      return words;
     };
 
     PDFText.widthify = function(words, fontName) {
@@ -301,7 +301,7 @@
     };
 
     PDFText.flowPara = function(para, fontSize, opts) {
-      var TJData, charCount, charCounts, charSpace, charSpaceFactor, charStretch, commands, finishLine, fix, height, i, leading, line, lines, minusLSpace, minusRSpace, numLines, scaledLineWidth, scaledLineWidths, scaledMaxWidth, scaledWidth, spaceCount, spaceCounts, stretchFactor, width, willExceedHeight, willWrap, word, wordSpace, wordSpaceFactor, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+      var TJData, charCount, charSpace, charSpaceFactor, charStretch, commands, finishLine, fix, height, i, leading, line, lineData, linesData, minusLSpace, minusRSpace, numLines, scale, scaledLineWidth, scaledMaxWidth, scaledWidth, spaceCount, stretchFactor, width, willExceedHeight, willWrap, word, wordSpace, wordSpaceFactor, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
       if ((_ref = opts.maxWidth) == null) {
         opts.maxWidth = Infinity;
       }
@@ -321,15 +321,13 @@
           stretchFactor: 0.15
         };
       }
+      scale = 1000 / fontSize;
       para = para.slice(0);
-      scaledMaxWidth = opts.maxWidth * 1000 / fontSize;
+      scaledMaxWidth = opts.maxWidth * scale;
       leading = fontSize * opts.lineHeight;
       scaledWidth = height = scaledLineWidth = charCount = spaceCount = 0;
       line = [];
-      lines = [];
-      scaledLineWidths = [];
-      charCounts = [];
-      spaceCounts = [];
+      linesData = [];
       fix = function(n) {
         return n.toFixed(3).replace(/\.?0+$/, '');
       };
@@ -339,10 +337,12 @@
         scaledLineWidth += lastWord.endWidth - lastWord.midWidth;
         charCount -= lastWord.spaceCount;
         spaceCount -= lastWord.spaceCount;
-        lines.push(line);
-        scaledLineWidths.push(scaledLineWidth);
-        charCounts.push(charCount);
-        spaceCounts.push(spaceCount);
+        linesData.push({
+          line: line,
+          scaledLineWidth: scaledLineWidth,
+          charCount: charCount,
+          spaceCount: spaceCount
+        });
         return height += leading;
       };
       while (para.length > 0) {
@@ -369,13 +369,11 @@
       }
       scaledWidth = 0;
       commands = "" + (fix(leading)) + " TL 0 Tw 0 Tc 100 Tz\n";
-      numLines = lines.length;
-      for (i = _i = 0, _len = lines.length; _i < _len; i = ++_i) {
-        line = lines[i];
-        scaledLineWidth = scaledLineWidths[i];
-        charCount = charCounts[i];
-        spaceCount = spaceCounts[i];
-        if (scaledWidth < scaledLineWidth) {
+      numLines = linesData.length;
+      for (i = _i = 0, _len = linesData.length; _i < _len; i = ++_i) {
+        lineData = linesData[i];
+        line = lineData.line, scaledLineWidth = lineData.scaledLineWidth, charCount = lineData.charCount, spaceCount = lineData.spaceCount;
+        if (scaledLineWidth > scaledWidth) {
           scaledWidth = scaledLineWidth;
         }
         minusRSpace = scaledLineWidth - scaledMaxWidth;
@@ -391,7 +389,7 @@
           }
         })();
         if (opts.align === 'full') {
-          if (i === lines.length - 1 && minusRSpace < 0) {
+          if (i === numLines - 1 && minusRSpace < 0) {
             wordSpace = charSpace = 0;
             charStretch = 100;
           } else {
@@ -401,9 +399,9 @@
               charSpaceFactor *= 1 / (1 - wordSpaceFactor);
               stretchFactor *= 1 / (1 - wordSpaceFactor);
             } else {
-              wordSpace = -wordSpaceFactor * minusRSpace / spaceCount / 1000 * fontSize;
+              wordSpace = -wordSpaceFactor * minusRSpace / spaceCount / scale;
             }
-            charSpace = -charSpaceFactor * minusRSpace / (charCount - 1) / 1000 * fontSize;
+            charSpace = -charSpaceFactor * minusRSpace / (charCount - 1) / scale;
             charStretch = 100 / (1 - (-minusRSpace * stretchFactor / scaledMaxWidth));
           }
           commands += "" + (fix(wordSpace)) + " Tw " + (fix(charSpace)) + " Tc " + (fix(charStretch)) + " Tz ";
@@ -419,7 +417,7 @@
         })();
         commands += "[ " + minusLSpace + (TJData.join('').replace(/> </g, '')) + "] TJ T*\n";
       }
-      width = scaledWidth / 1000 * fontSize;
+      width = scaledWidth / scale;
       return {
         commands: commands,
         para: para,
