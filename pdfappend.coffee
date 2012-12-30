@@ -214,7 +214,7 @@ class @PDFText
         
         str += char
         
-        kernWidth = kerning[char + nextChar]
+        kernWidth = kerning[char]?[nextChar]
         if kernWidth?
           TJData += "#{PDFText.hexString str} #{kernWidth} "
           str = ''

@@ -84,7 +84,9 @@ waiter = new ParallelWaiter fontNames.length + 2, (data) ->
         uesc1 = unicodeEscapeFromGlyphName name1
         uesc2 = unicodeEscapeFromGlyphName name2
         if uesc1? and uesc2?
-          fontKerning[uesc1 + uesc2] = -kern    
+          fontKerning[uesc1] ?= {}
+          fontKerning[uesc1][uesc2] = -kern
+          #fontKerning[uesc1 + uesc2] = -kern    
   console.log 'widths', widths, 'kerning', kerning, 'ligatures', ligatures
 
   codes = {}
@@ -92,9 +94,18 @@ waiter = new ParallelWaiter fontNames.length + 2, (data) ->
     codes[k] = toHex(v)
 
   console.log JSON.stringify({widths, kerning, ligatures, codes}).
-    replace(/\\\\u/g, '\\u').
-    replace(/,/g, ', ').
-    replace(/\}\, /g, '},\n')
+    replace(/\\\\u.{4}/g, (m) -> 
+      code = parseInt(m.substring(3), 16)
+      if code >= 32 and code <= 126
+        char = String.fromCharCode(code)
+        char = '\\' + char if char in ['"', '\\']
+        char
+      else
+        m.replace('\\\\', '\\')
+    ).
+    # replace(/,/g, ', ').
+    # replace(/\}\, /g, '},\n')
+    replace(/\}\,/g, '},\n')
 ###
     .replace /\\u[0-9a-f]{4}/gi, (hex) ->
       dec = parseInt hex.replace(/\\u/, ''), 16

@@ -96,7 +96,7 @@
   glyphNamesMacRoman = {};
 
   waiter = new ParallelWaiter(fontNames.length + 2, function(data) {
-    var afm, code, codes, field, fields, fontKerning, fontLigs, fontName, fontWidths, glyphname, k, kern, kpx, lig, ligs, line, macRomanCode, name, name1, name2, uesc, uesc1, uesc2, v, wx, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+    var afm, code, codes, field, fields, fontKerning, fontLigs, fontName, fontWidths, glyphname, k, kern, kpx, lig, ligs, line, macRomanCode, name, name1, name2, uesc, uesc1, uesc2, v, wx, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
     _ref = data.MacRoman.split('\n');
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       line = _ref[_i];
@@ -168,7 +168,10 @@
           uesc1 = unicodeEscapeFromGlyphName(name1);
           uesc2 = unicodeEscapeFromGlyphName(name2);
           if ((uesc1 != null) && (uesc2 != null)) {
-            fontKerning[uesc1 + uesc2] = -kern;
+            if ((_ref6 = fontKerning[uesc1]) == null) {
+              fontKerning[uesc1] = {};
+            }
+            fontKerning[uesc1][uesc2] = -kern;
           }
         }
       }
@@ -184,7 +187,19 @@
       kerning: kerning,
       ligatures: ligatures,
       codes: codes
-    }).replace(/\\\\u/g, '\\u').replace(/,/g, ', ').replace(/\}\, /g, '},\n'));
+    }).replace(/\\\\u.{4}/g, function(m) {
+      var char;
+      code = parseInt(m.substring(3), 16);
+      if (code >= 32 && code <= 126) {
+        char = String.fromCharCode(code);
+        if (char === '"' || char === '\\') {
+          char = '\\' + char;
+        }
+        return char;
+      } else {
+        return m.replace('\\\\', '\\');
+      }
+    }).replace(/\}\,/g, '},\n'));
   });
 
   /*

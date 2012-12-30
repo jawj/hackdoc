@@ -241,7 +241,7 @@
     };
 
     PDFText.widthify = function(words, fontName) {
-      var TJData, char, charCount, charWidth, endWidth, i, kernWidth, kerning, midWidth, nextChar, nextWord, nextWordChar, seenSpace, spaceCount, str, widths, word, _i, _j, _len, _ref, _results;
+      var TJData, char, charCount, charWidth, endWidth, i, kernWidth, kerning, midWidth, nextChar, nextWord, nextWordChar, seenSpace, spaceCount, str, widths, word, _i, _j, _len, _ref, _ref1, _results;
       widths = PDFText.metrics.widths[fontName];
       kerning = PDFText.metrics.kerning[fontName];
       _results = [];
@@ -267,7 +267,7 @@
             spaceCount++;
           }
           str += char;
-          kernWidth = kerning[char + nextChar];
+          kernWidth = (_ref1 = kerning[char]) != null ? _ref1[nextChar] : void 0;
           if (kernWidth != null) {
             TJData += "" + (PDFText.hexString(str)) + " " + kernWidth + " ";
             str = '';
