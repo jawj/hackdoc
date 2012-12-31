@@ -301,7 +301,7 @@
     };
 
     PDFText.flowPara = function(para, fontSize, opts) {
-      var TJData, charCount, charSpace, charSpaceFactor, charStretch, commands, finishLine, fix, height, i, leading, line, lineData, linesData, minusLSpace, minusRSpace, numLines, scale, scaledLineWidth, scaledMaxWidth, scaledWidth, spaceCount, stretchFactor, width, willExceedHeight, willWrap, word, wordSpace, wordSpaceFactor, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+      var TJData, charCount, charSpace, charSpaceFactor, charStretch, commands, finishLine, fix, height, i, leading, line, lineData, linesData, minusLSpace, numLines, rSpace, scale, scaledLineWidth, scaledMaxWidth, scaledWidth, spaceCount, stretchFactor, width, willExceedHeight, willWrap, word, wordSpace, wordSpaceFactor, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
       if ((_ref = opts.maxWidth) == null) {
         opts.maxWidth = Infinity;
       }
@@ -376,20 +376,20 @@
         if (scaledLineWidth > scaledWidth) {
           scaledWidth = scaledLineWidth;
         }
-        minusRSpace = scaledLineWidth - scaledMaxWidth;
+        rSpace = scaledMaxWidth - scaledLineWidth;
         minusLSpace = (function() {
           switch (opts.align) {
             case 'right':
-              return fix(minusRSpace) + ' ';
+              return fix(-rSpace) + ' ';
             case 'centre':
             case 'center':
-              return fix(minusRSpace / 2) + ' ';
+              return fix(-rSpace / 2) + ' ';
             default:
               return '';
           }
         })();
         if (opts.align === 'full') {
-          if (i === numLines - 1 && minusRSpace < 0) {
+          if (i === numLines - 1 && rSpace >= 0) {
             wordSpace = charSpace = 0;
             charStretch = 100;
           } else {
@@ -399,10 +399,10 @@
               charSpaceFactor *= 1 / (1 - wordSpaceFactor);
               stretchFactor *= 1 / (1 - wordSpaceFactor);
             } else {
-              wordSpace = -wordSpaceFactor * minusRSpace / spaceCount / scale;
+              wordSpace = wordSpaceFactor * rSpace / spaceCount / scale;
             }
-            charSpace = -charSpaceFactor * minusRSpace / (charCount - 1) / scale;
-            charStretch = 100 / (1 - (-minusRSpace * stretchFactor / scaledMaxWidth));
+            charSpace = charSpaceFactor * rSpace / (charCount - 1) / scale;
+            charStretch = 100 / (1 - (rSpace * stretchFactor / scaledMaxWidth));
           }
           commands += "" + (fix(wordSpace)) + " Tw " + (fix(charSpace)) + " Tc " + (fix(charStretch)) + " Tz ";
         }
@@ -418,6 +418,9 @@
         commands += "[ " + minusLSpace + (TJData.join('').replace(/> </g, '')) + "] TJ T*\n";
       }
       width = scaledWidth / scale;
+      if (opts.align === 'full' && scaledMaxWidth / scale < width) {
+        width = scaledMaxWidth / scale;
+      }
       return {
         commands: commands,
         para: para,

@@ -4,23 +4,27 @@ pw = new ParallelWaiter 3, (data) ->
   
   jpegObj = pdf.addObj data.jpegStr, null, PDFJPEG
   pngObj  = pdf.addObj data.pngStr,  null, PDFPNG
-
-  text1 = PDFText.preprocessPara("Affluent finance AWAY 6×6 £12 €13 – 15 x hello—again LOVE HATE YOU ME 123‰ Höhner 2πr. Lorem ipsum do-lor sit amet, consectetur adip-iscing elit. Ut eu ffffff nec nunf pellentesquelaoreeteuatnuncphasellusnonmagnai arcu consequat tincidunt sit amet conv-allis eros. In pellen–tesque pellentesque felis, ac varius nulla vehicula id. Sed rut-rum, quam nec semper dapibus, mi lorem adipiscing lectus, vel bibendum lorem erat quis neque. pellentesquelaoreeteuatnuncphasellusnonmagnaidconesqyatys x", 'Times-Roman', no)
   
-  text2 = PDFText.preprocessPara("The wind was a torrent of darkness among the gusty fleas, The moon was a ghostly galleon tossed upon cloudy seas, The road was a ribbon of moonlight over the purple moor, And the highwayman came riding— Riding—riding— The highwayman came fiding, up to the old inn-door.", 'Times-Roman')
+  text1 = PDFText.preprocessPara 'Affluent finance AWAY 6×6 £12 €13 – 15 x hello—again LOVE HATE YOU ME 123‰ Höhner 2πr. Lorem ipsum do-lor sit amet, consectetur adip-iscing elit. Ut eu ffffff nec nunf pellentesquelaoreeteuatnuncphasellusnonmagnai arcu consequat tincidunt sit amet conv-allis eros. In pellen–tesque pellentesque felis, ac varius nulla vehicula id. Sed rut-rum, quam nec semper dapibus, mi lorem adipiscing lectus, vel bibendum lorem erat quis neque. pellentesquelaoreeteuatnuncphasellusnonmagnaidconesqyatys x', 'Times-Roman', no
   
-  textStream = pdf.addObj """
-    q  1 0.5 0 RG  72 600 250 -180 re S  Q
+  text2 = PDFText.preprocessPara 'The wind was a torrent of darkness among the gusty fleas, The moon was a ghostly galleon tossed upon cloudy seas, The road was a ribbon of moonlight over the purple moor, And the highwayman came riding— Riding—riding— The highwayman came fiding, up to the old inn-door.', 'Times-Roman' 
+  
+  text1full  = PDFText.flowPara text1, 12, maxWidth: 250, align: 'full'
+  text2right = PDFText.flowPara text2, 14, maxWidth: 420, align: 'right'
+  console.log text1full, text2right
+  
+  contentStream = pdf.addObj """
+    q  1 0.5 0 RG  72 600 250 #{- text1full.height} re S  Q
     BT
       72 600 Td
       /TR 12 Tf
-      #{PDFText.flowPara(text1, 12, {maxWidth: 250, align: 'full'}).commands}
+      #{text1full.commands}
     ET
-    q  1 0.5 0 RG  72 350 420 -60 re S  Q
+    q  1 0.5 0 RG  72 350 420 #{- text2right.height} re S  Q
     BT
       72 350 Td
       /TR 14 Tf
-      #{PDFText.flowPara(text2, 14, {maxWidth: 420, align: 'right'}).commands}
+      #{text2right.commands}
       0 -8 Td
       #{PDFText.flowPara(text2, 14, {maxWidth: 420, align: 'left'}).commands}
       0 -8 Td
@@ -37,20 +41,22 @@ pw = new ParallelWaiter 3, (data) ->
       /MyIm2 Do  
     Q
     """, null, PDFStream
-
+  
+  # replace page object, simply adding a reference to our new content
   pdf.addObj """
     <<
     /Parent 2 0 R
     /MediaBox [0 0 595 842]
     /Resources 3 0 R
     /pdftk_PageNum 1
-    /Contents [4 0 R #{textStream.ref}]
+    /Contents [4 0 R #{contentStream.ref}]
     /Type /Page
     >>
     """, 1
   
+  # add references to Helvetica and Times
   timesObj = pdf.addObj 'Times-Roman', null, PDFBuiltInFont
-  helvObj = pdf.addObj 'Helvetica', null, PDFBuiltInFont
+  helvObj  = pdf.addObj 'Helvetica', null, PDFBuiltInFont
   
   pdf.addObj """
     <<

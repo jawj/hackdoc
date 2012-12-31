@@ -279,13 +279,13 @@ class @PDFText
     for lineData, i in linesData
       {line, scaledLineWidth, charCount, spaceCount} = lineData
       scaledWidth = scaledLineWidth if scaledLineWidth > scaledWidth
-      minusRSpace = scaledLineWidth - scaledMaxWidth
+      rSpace = scaledMaxWidth - scaledLineWidth
       minusLSpace = switch opts.align
-        when 'right' then fix(minusRSpace) + ' '
-        when 'centre', 'center' then fix(minusRSpace / 2) + ' '
+        when 'right' then fix(- rSpace) + ' '
+        when 'centre', 'center' then fix(- rSpace / 2) + ' '
         else ''  # left and full
       if opts.align is 'full'
-        if i is numLines - 1 and minusRSpace < 0  # do nothing to last line unless too long
+        if i is numLines - 1 and rSpace >= 0  # do nothing to last line unless too long
           wordSpace = charSpace = 0
           charStretch = 100
         else
@@ -295,15 +295,16 @@ class @PDFText
             charSpaceFactor *= 1 / (1 - wordSpaceFactor)
             stretchFactor   *= 1 / (1 - wordSpaceFactor)
           else
-            wordSpace = - wordSpaceFactor * minusRSpace / spaceCount / scale
-          charSpace = - charSpaceFactor * minusRSpace / (charCount - 1) / scale
-          charStretch = 100 / (1 - (- minusRSpace * stretchFactor / scaledMaxWidth))
+            wordSpace = wordSpaceFactor * rSpace / spaceCount / scale
+          charSpace = charSpaceFactor * rSpace / (charCount - 1) / scale
+          charStretch = 100 / (1 - (rSpace * stretchFactor / scaledMaxWidth))
         commands += "#{fix wordSpace} Tw #{fix charSpace} Tc #{fix charStretch} Tz "
       
       TJData = (word.TJData for word in line)
       commands += "[ #{minusLSpace}#{TJData.join('').replace /> </g, ''}] TJ T*\n"
     
     width = scaledWidth / scale
+    width = scaledMaxWidth / scale if opts.align is 'full' and scaledMaxWidth / scale < width
     {commands, para, width, height}
   
 

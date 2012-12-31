@@ -3,19 +3,22 @@
   var pw;
 
   pw = new ParallelWaiter(3, function(data) {
-    var helvObj, jpegObj, pdf, pngObj, text1, text2, textStream, timesObj;
+    var contentStream, helvObj, jpegObj, pdf, pngObj, text1, text1full, text2, text2right, timesObj;
     pdf = new PDFAppend(data.pdfStr);
     jpegObj = pdf.addObj(data.jpegStr, null, PDFJPEG);
     pngObj = pdf.addObj(data.pngStr, null, PDFPNG);
-    text1 = PDFText.preprocessPara("Affluent finance AWAY 6×6 £12 €13 – 15 x hello—again LOVE HATE YOU ME 123‰ Höhner 2πr. Lorem ipsum do-lor sit amet, consectetur adip-iscing elit. Ut eu ffffff nec nunf pellentesquelaoreeteuatnuncphasellusnonmagnai arcu consequat tincidunt sit amet conv-allis eros. In pellen–tesque pellentesque felis, ac varius nulla vehicula id. Sed rut-rum, quam nec semper dapibus, mi lorem adipiscing lectus, vel bibendum lorem erat quis neque. pellentesquelaoreeteuatnuncphasellusnonmagnaidconesqyatys x", 'Times-Roman', false);
-    text2 = PDFText.preprocessPara("The wind was a torrent of darkness among the gusty fleas, The moon was a ghostly galleon tossed upon cloudy seas, The road was a ribbon of moonlight over the purple moor, And the highwayman came riding— Riding—riding— The highwayman came fiding, up to the old inn-door.", 'Times-Roman');
-    textStream = pdf.addObj("q  1 0.5 0 RG  72 600 250 -180 re S  Q\nBT\n  72 600 Td\n  /TR 12 Tf\n  " + (PDFText.flowPara(text1, 12, {
+    text1 = PDFText.preprocessPara('Affluent finance AWAY 6×6 £12 €13 – 15 x hello—again LOVE HATE YOU ME 123‰ Höhner 2πr. Lorem ipsum do-lor sit amet, consectetur adip-iscing elit. Ut eu ffffff nec nunf pellentesquelaoreeteuatnuncphasellusnonmagnai arcu consequat tincidunt sit amet conv-allis eros. In pellen–tesque pellentesque felis, ac varius nulla vehicula id. Sed rut-rum, quam nec semper dapibus, mi lorem adipiscing lectus, vel bibendum lorem erat quis neque. pellentesquelaoreeteuatnuncphasellusnonmagnaidconesqyatys x', 'Times-Roman', false);
+    text2 = PDFText.preprocessPara('The wind was a torrent of darkness among the gusty fleas, The moon was a ghostly galleon tossed upon cloudy seas, The road was a ribbon of moonlight over the purple moor, And the highwayman came riding— Riding—riding— The highwayman came fiding, up to the old inn-door.', 'Times-Roman');
+    text1full = PDFText.flowPara(text1, 12, {
       maxWidth: 250,
       align: 'full'
-    }).commands) + "\nET\nq  1 0.5 0 RG  72 350 420 -60 re S  Q\nBT\n  72 350 Td\n  /TR 14 Tf\n  " + (PDFText.flowPara(text2, 14, {
+    });
+    text2right = PDFText.flowPara(text2, 14, {
       maxWidth: 420,
       align: 'right'
-    }).commands) + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
+    });
+    console.log(text1full, text2right);
+    contentStream = pdf.addObj("q  1 0.5 0 RG  72 600 250 " + (-text1full.height) + " re S  Q\nBT\n  72 600 Td\n  /TR 12 Tf\n  " + text1full.commands + "\nET\nq  1 0.5 0 RG  72 350 420 " + (-text2right.height) + " re S  Q\nBT\n  72 350 Td\n  /TR 14 Tf\n  " + text2right.commands + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
       maxWidth: 420,
       align: 'left'
     }).commands) + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
@@ -25,7 +28,7 @@
       maxWidth: 420,
       align: 'centre'
     }).commands) + "\nET\nq\n  72 0 0 72 400 400 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm Do  \nQ\nq\n  72 0 0 72 400 600 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm2 Do  \nQ", null, PDFStream);
-    pdf.addObj("<<\n/Parent 2 0 R\n/MediaBox [0 0 595 842]\n/Resources 3 0 R\n/pdftk_PageNum 1\n/Contents [4 0 R " + textStream.ref + "]\n/Type /Page\n>>", 1);
+    pdf.addObj("<<\n/Parent 2 0 R\n/MediaBox [0 0 595 842]\n/Resources 3 0 R\n/pdftk_PageNum 1\n/Contents [4 0 R " + contentStream.ref + "]\n/Type /Page\n>>", 1);
     timesObj = pdf.addObj('Times-Roman', null, PDFBuiltInFont);
     helvObj = pdf.addObj('Helvetica', null, PDFBuiltInFont);
     pdf.addObj("<<\n/ColorSpace \n  <<\n  /Cs1 5 0 R\n  >>\n/XObject \n  <<\n  /Im1 6 0 R\n  /MyIm " + jpegObj.ref + "\n  /MyIm2 " + pngObj.ref + "\n  >>\n/Font \n  <<\n  /TT1.0 7 0 R\n  /TR " + timesObj.ref + "\n  /H " + helvObj.ref + "\n  >>\n/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]\n>>", 3);

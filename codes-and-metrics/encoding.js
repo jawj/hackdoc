@@ -182,7 +182,7 @@
       v = unicodeEscapesMacRoman[k];
       codes[k] = toHex(v);
     }
-    return console.log(JSON.stringify({
+    return document.getElementsByTagName('body')[0].appendChild(document.createTextNode(JSON.stringify({
       widths: widths,
       kerning: kerning,
       ligatures: ligatures,
@@ -199,7 +199,7 @@
       } else {
         return m.replace('\\\\', '\\');
       }
-    }).replace(/\}\,/g, '},\n'));
+    }).replace(/\}\,/g, '},\n')));
   });
 
   xhr({

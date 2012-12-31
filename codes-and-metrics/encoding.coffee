@@ -88,12 +88,12 @@ waiter = new ParallelWaiter fontNames.length + 2, (data) ->
           fontKerning[uesc1][uesc2] = -kern
           #fontKerning[uesc1 + uesc2] = -kern    
   console.log 'widths', widths, 'kerning', kerning, 'ligatures', ligatures
-
+  
   codes = {}
   for k, v of unicodeEscapesMacRoman
     codes[k] = toHex(v)
-
-  console.log JSON.stringify({widths, kerning, ligatures, codes}).
+  
+  document.getElementsByTagName('body')[0].appendChild document.createTextNode JSON.stringify({widths, kerning, ligatures, codes}).
     replace(/\\\\u.{4}/g, (m) -> 
       code = parseInt(m.substring(3), 16)
       if code >= 32 and code <= 126
