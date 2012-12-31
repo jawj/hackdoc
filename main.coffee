@@ -2,8 +2,8 @@
 pw = new ParallelWaiter 3, (data) ->
   pdf = new PDFAppend data.pdfStr
   
-  jpegObj = pdf.addObj data.jpegStr, null, PDFJPEG
-  pngObj  = pdf.addObj data.pngStr,  null, PDFPNG
+  jpegObj = pdf.addImg data.jpegStr
+  pngObj  = pdf.addImg data.pngStr
   
   text1 = PDFText.preprocessPara 'Affluent finance AWAY 6×6 £12 €13 – 15 x hello—again LOVE HATE YOU ME 123‰ Höhner 2πr. Lorem ipsum do-lor sit amet, consectetur adip-iscing elit. Ut eu ffffff nec nunf pellentesquelaoreeteuatnuncphasellusnonmagnai arcu consequat tincidunt sit amet conv-allis eros. In pellen–tesque pellentesque felis, ac varius nulla vehicula id. Sed rut-rum, quam nec semper dapibus, mi lorem adipiscing lectus, vel bibendum lorem erat quis neque. pellentesquelaoreeteuatnuncphasellusnonmagnaidconesqyatys x', 'Times-Roman', no
   
@@ -11,7 +11,6 @@ pw = new ParallelWaiter 3, (data) ->
   
   text1full  = PDFText.flowPara text1, 12, maxWidth: 250, align: 'full'
   text2right = PDFText.flowPara text2, 14, maxWidth: 420, align: 'right'
-  console.log text1full, text2right
   
   contentStream = pdf.addObj """
     q  1 0.5 0 RG  72 600 250 #{- text1full.height} re S  Q

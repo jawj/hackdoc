@@ -36,12 +36,6 @@
 
     PDFJPEG.sofBlocks = [0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf];
 
-    PDFJPEG.identify = function(jpeg) {
-      var r;
-      r = new BinStringReader(jpeg);
-      return r.chars(PDFJPEG.header.length) === PDFJPEG.header;
-    };
-
     function PDFJPEG(objNum, jpeg) {
       var bits, channels, code, colorSpace, decodeParam, height, length, r, segmentLength, width;
       r = new BinStringReader(jpeg);
@@ -97,12 +91,6 @@
     __extends(PDFPNG, _super);
 
     PDFPNG.header = '\x89PNG\r\n\x1a\n';
-
-    PDFPNG.identify = function(png) {
-      var r;
-      r = new BinStringReader(png);
-      return r.chars(PDFPNG.header.length) === PDFPNG.header;
-    };
 
     function PDFPNG(objNum, png, pdf) {
       var bits, chunkSize, colorSpace, colorType, colors, compressionMethod, filterMethod, height, imageData, interlaceMethod, palette, paletteObj, r, section, width;
@@ -492,6 +480,15 @@
         this.objs.push(obj);
       }
       return obj;
+    };
+
+    PDFAppend.prototype.addImg = function(imgStr, objNum) {
+      var imgObj;
+      imgObj = this.addObj(imgStr, objNum, PDFJPEG);
+      if (imgObj.error != null) {
+        imgObj = this.addObj(imgStr, objNum, PDFPNG);
+      }
+      return imgObj;
     };
 
     PDFAppend.prototype.asBinaryString = function() {

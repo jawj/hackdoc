@@ -23,9 +23,6 @@ class @PDFStream extends PDFObj
 class @PDFJPEG extends PDFObj  # adapted from Prawn
   @header = '\xff\xd8\xff'
   @sofBlocks = [0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]
-  @identify = (jpeg) ->
-    r = new BinStringReader jpeg
-    r.chars(PDFJPEG.header.length) is PDFJPEG.header
   
   constructor: (objNum, jpeg) ->
     r = new BinStringReader jpeg
@@ -88,10 +85,6 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
   # not honoured: palette/index transparency (tRNS)
   
   @header = '\x89PNG\r\n\x1a\n'
-  @identify = (png) ->
-    r = new BinStringReader png
-    r.chars(PDFPNG.header.length) is PDFPNG.header
-  
   constructor: (objNum, png, pdf) ->
     r = new BinStringReader png
     unless r.chars(PDFPNG.header.length) is PDFPNG.header
@@ -349,6 +342,11 @@ class @PDFAppend
     obj = new objType objNum, content, @
     @objs.push obj unless obj.error?
     obj
+  
+  addImg: (imgStr, objNum) ->
+    imgObj = @addObj imgStr, objNum, PDFJPEG
+    imgObj = @addObj imgStr, objNum, PDFPNG if imgObj.error?
+    imgObj
   
   asBinaryString: ->
     @objs.sort (a, b) -> a.objNum - b.objNum
