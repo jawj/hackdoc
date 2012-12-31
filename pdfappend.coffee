@@ -50,11 +50,11 @@ class @PDFJPEG extends PDFObj  # adapted from Prawn
     
     decodeParam = ''
     colorSpace = switch channels
-      when 1 then 'DeviceGray'
-      when 3 then 'DeviceRGB'
+      when 1 then '/DeviceGray'
+      when 3 then '/DeviceRGB'
       when 4
         decodeParam = '/Decode [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]'
-        'DeviceCMYK'
+        '/DeviceCMYK'
       else @error = 'Unsupported number of channels in JPEG'
     return if @error?
     
@@ -63,7 +63,7 @@ class @PDFJPEG extends PDFObj  # adapted from Prawn
       /Type /XObject
       /Subtype /Image
       /Filter /DCTDecode
-      /ColorSpace /#{colorSpace}
+      /ColorSpace #{colorSpace}
       /BitsPerComponent #{bits}
       /Width #{width}
       /Height #{height}
@@ -76,13 +76,12 @@ class @PDFJPEG extends PDFObj  # adapted from Prawn
   
 
 class @PDFPNG extends PDFObj  # adapted from Prawn
-  
   # works: 1-bit, 2-bit, 4-bit, 8-bit, 16-bit grayscale
   # works: 8-bit, 16-bit RGB
   # works: 1-bit, 2-bit, 4-bit, 8-bit paletted
   # doesn't work: interlaced (error returned)
   # doesn't work: alpha transparency (error returned)
-  # not honoured: palette/index transparency (tRNS)
+  # not honoured: tRNS-block palette/index transparency
   
   @header = '\x89PNG\r\n\x1a\n'
   constructor: (objNum, png, pdf) ->
@@ -319,8 +318,7 @@ class @PDFBuiltInFont extends PDFObj
 
 class @PDFAppend
   @zeroPad = (n, len) ->
-    # for len up to 10
-    zeroes = '0000000000'
+    zeroes = '0000000000'  # for len up to 10
     str = '' + n
     zeroes.substring(0, len - str.length) + str
   

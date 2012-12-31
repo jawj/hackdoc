@@ -66,12 +66,12 @@
       colorSpace = (function() {
         switch (channels) {
           case 1:
-            return 'DeviceGray';
+            return '/DeviceGray';
           case 3:
-            return 'DeviceRGB';
+            return '/DeviceRGB';
           case 4:
             decodeParam = '/Decode [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]';
-            return 'DeviceCMYK';
+            return '/DeviceCMYK';
           default:
             return this.error = 'Unsupported number of channels in JPEG';
         }
@@ -79,7 +79,7 @@
       if (this.error != null) {
         return;
       }
-      PDFJPEG.__super__.constructor.call(this, objNum, "<<\n/Type /XObject\n/Subtype /Image\n/Filter /DCTDecode\n/ColorSpace /" + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + width + "\n/Height " + height + "\n/Length " + jpeg.length + "\n" + decodeParam + "\n>>\nstream\n" + jpeg + "\nendstream");
+      PDFJPEG.__super__.constructor.call(this, objNum, "<<\n/Type /XObject\n/Subtype /Image\n/Filter /DCTDecode\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + width + "\n/Height " + height + "\n/Length " + jpeg.length + "\n" + decodeParam + "\n>>\nstream\n" + jpeg + "\nendstream");
     }
 
     return PDFJPEG;
