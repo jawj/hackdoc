@@ -27,10 +27,10 @@
       maxWidth: 420,
       align: 'centre'
     }).commands) + "\nET\nq\n  72 0 0 72 400 400 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm Do  \nQ\nq\n  72 0 0 72 400 600 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm2 Do  \nQ", null, PDFStream);
-    pdf.addObj("<<\n/Parent 2 0 R\n/MediaBox [0 0 595 842]\n/Resources 3 0 R\n/pdftk_PageNum 1\n/Contents [4 0 R " + contentStream.ref + "]\n/Type /Page\n>>", 1);
+    pdf.addObj("<< \n/Type /Page \n/Parent 3 0 R\n/Resources 6 0 R\n/Contents [4 0 R " + contentStream.ref + "]\n/MediaBox [0 0 595 842]\n>>", 2);
     timesObj = pdf.addObj('Times-Roman', null, PDFBuiltInFont);
     helvObj = pdf.addObj('Helvetica', null, PDFBuiltInFont);
-    pdf.addObj("<<\n/ColorSpace \n  <<\n  /Cs1 5 0 R\n  >>\n/XObject \n  <<\n  /Im1 6 0 R\n  /MyIm " + jpegObj.ref + "\n  /MyIm2 " + pngObj.ref + "\n  >>\n/Font \n  <<\n  /TT1.0 7 0 R\n  /TR " + timesObj.ref + "\n  /H " + helvObj.ref + "\n  >>\n/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]\n>>", 3);
+    pdf.addObj("<< \n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]\n/ColorSpace <<\n  /Cs1 7 0 R\n>> \n/Font <<\n  /TT1.0 8 0 R\n  /TR " + timesObj.ref + "\n  /H " + helvObj.ref + "\n>> \n/XObject <<\n  /Im1 9 0 R\n  /MyIm " + jpegObj.ref + "\n  /MyIm2 " + pngObj.ref + "\n>>\n>>", 6);
     return make({
       tag: 'a',
       href: pdf.asDataURI(),
@@ -42,7 +42,7 @@
   });
 
   xhr({
-    url: 'pdf/kernligimg.uc.pdf',
+    url: 'pdf/kernligimg.pdf',
     binary: true,
     success: function(req) {
       return pw.done('pdfStr', req.responseText);

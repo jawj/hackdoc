@@ -12,6 +12,7 @@ pw = new ParallelWaiter 3, (data) ->
   text1full  = PDFText.flowPara text1, 12, maxWidth: 250, align: 'full'
   text2right = PDFText.flowPara text2, 14, maxWidth: 420, align: 'right'
   
+  # add a new object -- an extra content stream
   contentStream = pdf.addObj """
     q  1 0.5 0 RG  72 600 250 #{- text1full.height} re S  Q
     BT
@@ -41,46 +42,43 @@ pw = new ParallelWaiter 3, (data) ->
     Q
     """, null, PDFStream
   
-  # replace page object, simply adding a reference to our new content
+  # replace page object, with one change: adding a reference to our new content
   pdf.addObj """
-    <<
-    /Parent 2 0 R
-    /MediaBox [0 0 595 842]
-    /Resources 3 0 R
-    /pdftk_PageNum 1
+    << 
+    /Type /Page 
+    /Parent 3 0 R
+    /Resources 6 0 R
     /Contents [4 0 R #{contentStream.ref}]
-    /Type /Page
+    /MediaBox [0 0 595 842]
     >>
-    """, 1
+    """, 2
   
-  # add references to Helvetica and Times
+  # add references to Helvetica and Times as new objects
   timesObj = pdf.addObj 'Times-Roman', null, PDFBuiltInFont
   helvObj  = pdf.addObj 'Helvetica', null, PDFBuiltInFont
   
+  # replace page resources object, adding references to our new fonts and images
   pdf.addObj """
-    <<
-    /ColorSpace 
-      <<
-      /Cs1 5 0 R
-      >>
-    /XObject 
-      <<
-      /Im1 6 0 R
-      /MyIm #{jpegObj.ref}
-      /MyIm2 #{pngObj.ref}
-      >>
-    /Font 
-      <<
-      /TT1.0 7 0 R
+    << 
+    /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+    /ColorSpace <<
+      /Cs1 7 0 R
+    >> 
+    /Font <<
+      /TT1.0 8 0 R
       /TR #{timesObj.ref}
       /H #{helvObj.ref}
-      >>
-    /ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+    >> 
+    /XObject <<
+      /Im1 9 0 R
+      /MyIm #{jpegObj.ref}
+      /MyIm2 #{pngObj.ref}
     >>
-    """, 3
+    >>
+    """, 6
   
   make tag: 'a', href: pdf.asDataURI(), text: 'PDF', parent: get(tag: 'body')
 
-xhr url: 'pdf/kernligimg.uc.pdf', binary: yes, success: (req) -> pw.done 'pdfStr',  req.responseText
+xhr url: 'pdf/kernligimg.pdf', binary: yes, success: (req) -> pw.done 'pdfStr',  req.responseText
 xhr url: 'images/pound-coin.jpg', binary: yes, success: (req) -> pw.done 'jpegStr', req.responseText
 xhr url: 'images/basn3p01.png',   binary: yes, success: (req) -> pw.done 'pngStr',  req.responseText
