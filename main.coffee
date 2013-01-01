@@ -14,13 +14,13 @@ pw = new ParallelWaiter 3, (data) ->
   
   # add a new object -- an extra content stream
   contentStream = pdf.addObj """
-    q  1 0.5 0 RG  72 600 250 #{- text1full.height} re S  Q
+    q  0.7 0.7 0.7 RG  72 #{600 + 12} 250 #{- text1full.height} re S  Q
     BT
       72 600 Td
       /TR 12 Tf
       #{text1full.commands}
     ET
-    q  1 0.5 0 RG  72 350 420 #{- text2right.height} re S  Q
+    q  1 0.5 0 RG  #{72 + 420 - text2right.width} #{350 + 14} #{text2right.width} #{- text2right.height} re S  Q
     BT
       72 350 Td
       /TR 14 Tf

@@ -17,7 +17,7 @@
       maxWidth: 420,
       align: 'right'
     });
-    contentStream = pdf.addObj("q  1 0.5 0 RG  72 600 250 " + (-text1full.height) + " re S  Q\nBT\n  72 600 Td\n  /TR 12 Tf\n  " + text1full.commands + "\nET\nq  1 0.5 0 RG  72 350 420 " + (-text2right.height) + " re S  Q\nBT\n  72 350 Td\n  /TR 14 Tf\n  " + text2right.commands + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
+    contentStream = pdf.addObj("q  0.7 0.7 0.7 RG  72 " + (600 + 12) + " 250 " + (-text1full.height) + " re S  Q\nBT\n  72 600 Td\n  /TR 12 Tf\n  " + text1full.commands + "\nET\nq  1 0.5 0 RG  " + (72 + 420 - text2right.width) + " " + (350 + 14) + " " + text2right.width + " " + (-text2right.height) + " re S  Q\nBT\n  72 350 Td\n  /TR 14 Tf\n  " + text2right.commands + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
       maxWidth: 420,
       align: 'left'
     }).commands) + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
