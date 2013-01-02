@@ -37,7 +37,7 @@
     PDFJPEG.sofBlocks = [0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf];
 
     function PDFJPEG(objNum, jpeg) {
-      var bits, channels, code, colorSpace, decodeParam, height, length, r, segmentLength, width;
+      var bits, channels, code, colorSpace, decodeParam, length, r, segmentLength;
       r = new BinStringReader(jpeg);
       if (r.chars(PDFJPEG.header.length) !== PDFJPEG.header) {
         this.error = 'Invalid header in JPEG';
@@ -55,8 +55,8 @@
         length = r.uint16be();
         if (__indexOf.call(PDFJPEG.sofBlocks, code) >= 0) {
           bits = r.uchar();
-          height = r.uint16be();
-          width = r.uint16be();
+          this.height = r.uint16be();
+          this.width = r.uint16be();
           channels = r.uchar();
           break;
         }
@@ -79,7 +79,7 @@
       if (this.error != null) {
         return;
       }
-      PDFJPEG.__super__.constructor.call(this, objNum, "<<\n/Type /XObject\n/Subtype /Image\n/Filter /DCTDecode\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + width + "\n/Height " + height + "\n/Length " + jpeg.length + "\n" + decodeParam + "\n>>\nstream\n" + jpeg + "\nendstream");
+      PDFJPEG.__super__.constructor.call(this, objNum, "<<\n/Type /XObject\n/Subtype /Image\n/Filter /DCTDecode\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + jpeg.length + "\n" + decodeParam + "\n>>\nstream\n" + jpeg + "\nendstream");
     }
 
     return PDFJPEG;
@@ -93,7 +93,7 @@
     PDFPNG.header = '\x89PNG\r\n\x1a\n';
 
     function PDFPNG(objNum, png, pdf) {
-      var bits, chunkSize, colorSpace, colorType, colors, compressionMethod, filterMethod, height, imageData, interlaceMethod, palette, paletteObj, r, section, width;
+      var bits, chunkSize, colorSpace, colorType, colors, compressionMethod, filterMethod, imageData, interlaceMethod, palette, paletteObj, r, section;
       r = new BinStringReader(png);
       if (r.chars(PDFPNG.header.length) !== PDFPNG.header) {
         this.error = 'Invalid header in PNG';
@@ -104,8 +104,8 @@
         section = r.chars(4);
         switch (section) {
           case 'IHDR':
-            width = r.uint32be();
-            height = r.uint32be();
+            this.width = r.uint32be();
+            this.height = r.uint32be();
             bits = r.uchar();
             colorType = r.uchar();
             compressionMethod = r.uchar();
@@ -168,7 +168,7 @@
       if (this.error != null) {
         return;
       }
-      PDFPNG.__super__.constructor.call(this, objNum, "<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + width + "\n/Height " + height + "\n/Length " + imageData.length + "\n/Filter /FlateDecode\n/DecodeParms <<\n  /Predictor 15\n  /Colors " + colors + "\n  /BitsPerComponent " + bits + "\n  /Columns " + width + "\n  >>\n>>\nstream\n" + imageData + "\nendstream");
+      PDFPNG.__super__.constructor.call(this, objNum, "<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + imageData.length + "\n/Filter /FlateDecode\n/DecodeParms <<\n  /Predictor 15\n  /Colors " + colors + "\n  /BitsPerComponent " + bits + "\n  /Columns " + this.width + "\n  >>\n>>\nstream\n" + imageData + "\nendstream");
     }
 
     return PDFPNG;

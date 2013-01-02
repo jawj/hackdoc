@@ -42,8 +42,8 @@ class @PDFJPEG extends PDFObj  # adapted from Prawn
       length = r.uint16be()
       if code in PDFJPEG.sofBlocks
         bits = r.uchar()
-        height = r.uint16be()
-        width = r.uint16be()
+        @height = r.uint16be()
+        @width = r.uint16be()
         channels = r.uchar()
         break
       r.skip(length - 2)
@@ -65,8 +65,8 @@ class @PDFJPEG extends PDFObj  # adapted from Prawn
       /Filter /DCTDecode
       /ColorSpace #{colorSpace}
       /BitsPerComponent #{bits}
-      /Width #{width}
-      /Height #{height}
+      /Width #{@width}
+      /Height #{@height}
       /Length #{jpeg.length}
       #{decodeParam}
       >>
@@ -95,8 +95,8 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
       section = r.chars 4
       switch section
         when 'IHDR'  # see http://www.w3.org/TR/PNG-Chunks.html#C.IHDR
-          width = r.uint32be()
-          height = r.uint32be()
+          @width = r.uint32be()
+          @height = r.uint32be()
           bits = r.uchar()
           colorType = r.uchar()
           compressionMethod = r.uchar()
@@ -139,15 +139,15 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
       /Subtype /Image
       /ColorSpace #{colorSpace}
       /BitsPerComponent #{bits}
-      /Width #{width}
-      /Height #{height}
+      /Width #{@width}
+      /Height #{@height}
       /Length #{imageData.length}
       /Filter /FlateDecode
       /DecodeParms <<
         /Predictor 15
         /Colors #{colors}
         /BitsPerComponent #{bits}
-        /Columns #{width}
+        /Columns #{@width}
         >>
       >>
       stream
