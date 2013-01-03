@@ -467,15 +467,19 @@
       this.baseStartXref = +trailer.match(/(\d+)\s+%%EOF\s+$/)[1];
     }
 
-    PDFAppend.prototype.addObj = function(content, objNum, objType) {
-      var obj;
+    PDFAppend.prototype.addObj = function(content, objNum, objType, minify) {
+      var minifiedContent, obj;
       if (objType == null) {
         objType = PDFObj;
+      }
+      if (minify == null) {
+        minify = false;
       }
       if (objNum == null) {
         objNum = this.nextFreeObjNum++;
       }
-      obj = new objType(objNum, content, this);
+      minifiedContent = minify ? content.replace(/%.*$/mg, '').replace(/\s+\n/g, '\n') : content;
+      obj = new objType(objNum, minifiedContent, this);
       if (obj.error == null) {
         this.objs.push(obj);
       }

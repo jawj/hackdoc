@@ -98,8 +98,8 @@ jsonp.callbackNum = 0
 class @ParallelWaiter  # waits for parallel async jobs
   constructor: (@waitingFor, @cb) -> @returnValues = {}
   await: (n = 1) -> @waitingFor += n
-  done: (id, returnValue) ->
-    @returnValues[id] = returnValue if id?
+  done: (returnValues) ->
+    (@returnValues[k] = v) for k, v of returnValues
     @cb(@returnValues) if --@waitingFor is 0
 
 class @BinStringReader

@@ -249,9 +249,11 @@
       return this.waitingFor += n;
     };
 
-    ParallelWaiter.prototype.done = function(id, returnValue) {
-      if (id != null) {
-        this.returnValues[id] = returnValue;
+    ParallelWaiter.prototype.done = function(returnValues) {
+      var k, v;
+      for (k in returnValues) {
+        v = returnValues[k];
+        this.returnValues[k] = v;
       }
       if (--this.waitingFor === 0) {
         return this.cb(this.returnValues);

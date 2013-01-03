@@ -335,9 +335,10 @@ class @PDFAppend
     @id = trailer.match(/\s+\/ID\s+\[\s*<([0-9a-f]+)>\s+/i)[1]
     @baseStartXref = +trailer.match(/(\d+)\s+%%EOF\s+$/)[1]
   
-  addObj: (content, objNum, objType = PDFObj) ->
+  addObj: (content, objNum, objType = PDFObj, minify = no) ->
     objNum ?= @nextFreeObjNum++
-    obj = new objType objNum, content, @
+    minifiedContent = if minify then content.replace(/%.*$/mg, '').replace(/\s+\n/g, '\n') else content
+    obj = new objType objNum, minifiedContent, @
     @objs.push obj unless obj.error?
     obj
   
