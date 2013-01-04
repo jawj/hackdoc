@@ -77,7 +77,10 @@ get.uniqueTags = 'html body frameset head title base'.split(' ')
   req.onreadystatechange = -> 
     if req.readyState is 4 and (req.status is 200 or not location.href.match /^https?:/)
       opts.success(req)
-  req.overrideMimeType 'text/plain; charset=x-user-defined' if opts.binary
+  if opts.type is 'binString'
+    req.overrideMimeType 'text/plain; charset=x-user-defined'
+  else if opts.type?
+    req.responseType = opts.type
   req.overrideMimeType opts.mime if opts.mime?
   req.user = opts.user if opts.user?
   req.password = opts.password if opts.password?
@@ -102,12 +105,17 @@ class @ParallelWaiter  # waits for parallel async jobs
     (@returnValues[k] = v) for k, v of returnValues
     @cb(@returnValues) if --@waitingFor is 0
 
-class @BinStringReader
-  constructor: (@str) -> @offset = 0
+class @BinReader
+  constructor: (@data) -> @offset = 0
   skip: (n) -> @offset += n
   chars: (n, str = '') -> (str += String.fromCharCode @uchar()) for i in [0...n]; str
-  uchar: -> @str.charCodeAt(@offset++) & 0xff
   uint16be: -> (@uchar() << 8) + @uchar()
   uint32be: -> (@uint16be() << 16) + @uint16be()
-  eof: -> @offset >= @str.length
+  eof: -> @offset >= @data.length
 
+class @BinStringReader extends BinReader
+  uchar: -> @data.charCodeAt(@offset++) & 0xff
+
+class @Uint8ArrayReader extends BinReader 
+  # keeps position, and compatible with older browsers cf. DataView
+  uchar: -> @data[@offset++]
