@@ -159,7 +159,9 @@
           case 2:
             return '/DeviceRGB';
           case 3:
-            paletteObj = pdf.addObj(palette, null, PDFStream);
+            paletteObj = pdf.addObj(palette, {
+              type: PDFStream
+            });
             return "[/Indexed /DeviceRGB " + (palette.length / 3 - 1) + " " + paletteObj.ref + "]";
           default:
             return this.error = 'Unsupported number of colours in PNG';
@@ -290,6 +292,9 @@
 
     PDFText.flowPara = function(para, fontSize, opts) {
       var TJData, charCount, charSpace, charSpaceFactor, charStretch, commands, finishLine, fix, height, i, leading, line, lineData, linesData, minusLSpace, numLines, rSpace, scale, scaledLineWidth, scaledMaxWidth, scaledWidth, spaceCount, stretchFactor, width, willExceedHeight, willWrap, word, wordSpace, wordSpaceFactor, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+      if (opts == null) {
+        opts = {};
+      }
       if ((_ref = opts.maxWidth) == null) {
         opts.maxWidth = Infinity;
       }
@@ -467,30 +472,31 @@
       this.baseStartXref = +trailer.match(/(\d+)\s+%%EOF\s+$/)[1];
     }
 
-    PDFAppend.prototype.addObj = function(content, objNum, objType, minify) {
-      var minifiedContent, obj;
-      if (objType == null) {
-        objType = PDFObj;
+    PDFAppend.prototype.addObj = function(rawContent, opts) {
+      var content, obj, objNum, objType, _ref, _ref1;
+      if (opts == null) {
+        opts = {};
       }
-      if (minify == null) {
-        minify = false;
-      }
-      if (objNum == null) {
-        objNum = this.nextFreeObjNum++;
-      }
-      minifiedContent = minify ? content.replace(/%.*$/mg, '').replace(/\s+\n/g, '\n') : content;
-      obj = new objType(objNum, minifiedContent, this);
+      objNum = (_ref = opts.num) != null ? _ref : this.nextFreeObjNum++;
+      objType = (_ref1 = opts.type) != null ? _ref1 : PDFObj;
+      content = opts.minify != null ? rawContent.replace(/%.*$/mg, '').replace(/\s+\n/g, '\n') : rawContent;
+      obj = new objType(objNum, content, this);
       if (obj.error == null) {
         this.objs.push(obj);
       }
       return obj;
     };
 
-    PDFAppend.prototype.addImg = function(imgStr, objNum) {
+    PDFAppend.prototype.addImg = function(img, opts) {
       var imgObj;
-      imgObj = this.addObj(imgStr, objNum, PDFJPEG);
+      if (opts == null) {
+        opts = {};
+      }
+      opts.type = PDFJPEG;
+      imgObj = this.addObj(img, opts);
       if (imgObj.error != null) {
-        imgObj = this.addObj(imgStr, objNum, PDFPNG);
+        opts.type = PDFPNG;
+        imgObj = this.addObj(img, opts);
       }
       return imgObj;
     };

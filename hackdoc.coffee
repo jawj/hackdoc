@@ -128,7 +128,7 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
       when 0 then '/DeviceGray'
       when 2 then '/DeviceRGB'
       when 3
-        paletteObj = pdf.addObj palette, null, PDFStream
+        paletteObj = pdf.addObj palette, type: PDFStream
         "[/Indexed /DeviceRGB #{palette.length / 3 - 1} #{paletteObj.ref}]"
       else @error = 'Unsupported number of colours in PNG'
     return if @error?
@@ -220,7 +220,7 @@ class @PDFText
     ligaturize = if ligatures then PDFText.ligaturize else noop  # NB. disable ligatures if using full justification
     PDFText.widthify(PDFText.wordify(ligaturize(PDFText.sanitize(s, fontName), fontName)), fontName)
   
-  @flowPara = (para, fontSize, opts) ->
+  @flowPara = (para, fontSize, opts = {}) ->
     opts.maxWidth   ?= Infinity
     opts.maxHeight  ?= Infinity
     opts.lineHeight ?= 1.3
@@ -302,7 +302,7 @@ class @PDFText
 
 class @PDFBuiltInFont extends PDFObj
   constructor: (objNum, fontName) ->
-     # encoding matches metrics.js
+    # encoding matches metrics.js
     super objNum, """
       <<
       /Type /Font 
@@ -335,16 +335,22 @@ class @PDFAppend
     @id = trailer.match(/\s+\/ID\s+\[\s*<([0-9a-f]+)>\s+/i)[1]
     @baseStartXref = +trailer.match(/(\d+)\s+%%EOF\s+$/)[1]
   
-  addObj: (content, objNum, objType = PDFObj, minify = no) ->
-    objNum ?= @nextFreeObjNum++
-    minifiedContent = if minify then content.replace(/%.*$/mg, '').replace(/\s+\n/g, '\n') else content
-    obj = new objType objNum, minifiedContent, @
+  addObj: (rawContent, opts = {}) ->
+    objNum = opts.num ? @nextFreeObjNum++
+    objType = opts.type ? PDFObj
+    content = if opts.minify?
+      rawContent.replace(/%.*$/mg, '').replace(/\s+\n/g, '\n')
+    else rawContent
+    obj = new objType objNum, content, @
     @objs.push obj unless obj.error?
     obj
   
-  addImg: (imgStr, objNum) ->
-    imgObj = @addObj imgStr, objNum, PDFJPEG
-    imgObj = @addObj imgStr, objNum, PDFPNG if imgObj.error?
+  addImg: (img, opts = {}) ->
+    opts.type = PDFJPEG
+    imgObj = @addObj img, opts
+    if imgObj.error?
+      opts.type = PDFPNG
+      imgObj = @addObj img, opts
     imgObj
   
   asBinaryString: ->
