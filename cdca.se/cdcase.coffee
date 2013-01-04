@@ -220,7 +220,8 @@ pw = new ParallelWaiter 2, (data) ->
   make tag: 'a', href: (URL ? webkitURL).createObjectURL(b), text: 'PDF (Blob URL)', parent: get(tag: 'body')
 
 albumQuery = 'http://ws.audioscrobbler.com/2.0/?' + 
-  'api_key=2113885e020cefe1d72f95d8378d32c1&method=album.getinfo&artist=Radiohead&album=The+Bends&format=json&callback=<cb>'
+  'api_key=2113885e020cefe1d72f95d8378d32c1&method=album.getinfo&format=json&callback=<cb>&' + 
+  location.search.substring 1
 
 xhr url: 'template.pdf', binary: yes, success: (req) -> pw.done pdf: req.responseText
 jsonp url: albumQuery, success: (albumData) ->
