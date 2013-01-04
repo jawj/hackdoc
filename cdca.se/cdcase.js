@@ -41,6 +41,7 @@
     var albumName, artist, artistFlow, artistPara, b, backContent, bs, dur, durFlow, durMatch, durMaxWidth, durRe, fontBoldObj, fontObj, frontContent, height, i, imgObj, k, len, maxSpineWidth, maxTrackHeight, maxTrackWidth, mediaBox, mins, name, nameFlow, namePara, num, numAndDurSize, numFlow, numMatch, numMaxWidth, numRe, pdf, secs, spineCommands, spineSize, spineSpace, spineXHeightFactor, t, totalWidth, track, trackCommands, trackData, trackSize, trackSpacing, trackText, tracks, u8a, v, _i, _j, _k, _l, _len, _len1, _ref3;
     pdf = new PDFAppend(data.pdf);
     imgObj = pdf.addImg(data.img);
+    console.log(imgObj);
     _ref3 = data.albumData.album, artist = _ref3.artist, albumName = _ref3.name;
     tracks = (function() {
       var _i, _len, _ref4, _results;
@@ -194,7 +195,7 @@
     });
   });
 
-  albumQuery = 'http://ws.audioscrobbler.com/2.0/?' + 'api_key=2113885e020cefe1d72f95d8378d32c1&method=album.getinfo&artist=Karine+Polwart&album=Traces&format=json&callback=<cb>';
+  albumQuery = 'http://ws.audioscrobbler.com/2.0/?' + 'api_key=2113885e020cefe1d72f95d8378d32c1&method=album.getinfo&artist=Radiohead&album=The+Bends&format=json&callback=<cb>';
 
   xhr({
     url: 'template.pdf',

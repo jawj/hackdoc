@@ -99,6 +99,7 @@
         this.error = 'Invalid header in PNG';
         return;
       }
+      imageData = '';
       while (!r.eof()) {
         chunkSize = r.uint32be();
         section = r.chars(4);
@@ -117,7 +118,7 @@
             palette = r.chars(chunkSize);
             break;
           case 'IDAT':
-            imageData = r.chars(chunkSize);
+            imageData += r.chars(chunkSize);
             break;
           case 'IEND':
             break;

@@ -89,7 +89,8 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
     unless r.chars(PDFPNG.header.length) is PDFPNG.header
       @error = 'Invalid header in PNG'
       return
-      
+    
+    imageData = ''
     while not r.eof()
       chunkSize = r.uint32be()
       section = r.chars 4
@@ -106,7 +107,7 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
         when 'PLTE'
           palette = r.chars chunkSize
         when 'IDAT'
-          imageData = r.chars chunkSize
+          imageData += r.chars chunkSize
         when 'IEND'
           break
         else 
