@@ -108,7 +108,12 @@ class @ParallelWaiter  # waits for parallel async jobs
 class @BinReader
   constructor: (@data) -> @offset = 0
   skip: (n) -> @offset += n
-  chars: (n, str = '') -> (str += String.fromCharCode @uchar()) for i in [0...n]; str
+  seek: (n) -> @offset = n
+  chars: (n = Infinity, str = '') ->
+    end = Math.min n, @data.length - @offset
+    for i in [0...end]
+      str += String.fromCharCode @uchar()
+    str
   uint16be: -> (@uchar() << 8) + @uchar()
   uint32be: -> (@uint16be() << 16) + @uint16be()
   eof: -> @offset >= @data.length
@@ -117,5 +122,7 @@ class @BinStringReader extends BinReader
   uchar: -> @data.charCodeAt(@offset++) & 0xff
 
 class @Uint8ArrayReader extends BinReader 
-  # keeps position, and compatible with older browsers cf. DataView
+  # keeps position, and compatible with older browsers than DataView
   uchar: -> @data[@offset++]
+  subarray: (n) -> @data.subarray @offset, (@offset += n)
+    

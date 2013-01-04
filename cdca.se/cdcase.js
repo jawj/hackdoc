@@ -198,10 +198,10 @@
 
   xhr({
     url: 'template.pdf',
-    binary: true,
+    type: 'arraybuffer',
     success: function(req) {
       return pw.done({
-        pdf: req.responseText
+        pdf: new Uint8Array(req.response)
       });
     }
   });
@@ -226,11 +226,11 @@
       }
       return xhr({
         url: imgUrl.replace(/^http:\//, 'http://mackerron.com'),
-        binary: true,
+        type: 'arraybuffer',
         success: function(req) {
           return pw.done({
             albumData: albumData,
-            img: req.responseText
+            img: new Uint8Array(req.response)
           });
         }
       });

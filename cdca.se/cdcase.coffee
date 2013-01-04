@@ -223,7 +223,7 @@ albumQuery = 'http://ws.audioscrobbler.com/2.0/?' +
   'api_key=2113885e020cefe1d72f95d8378d32c1&method=album.getinfo&format=json&callback=<cb>&' + 
   location.search.substring 1
 
-xhr url: 'template.pdf', binary: yes, success: (req) -> pw.done pdf: req.responseText
+xhr url: 'template.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: new Uint8Array(req.response)
 jsonp url: albumQuery, success: (albumData) ->
   imgs = {}
   for img in albumData.album.image
@@ -231,6 +231,6 @@ jsonp url: albumQuery, success: (albumData) ->
   for size in w 'mega extralarge large medium small'
     imgUrl = imgs[size]
     break if imgUrl?
-  xhr url: imgUrl.replace(/^http:\//, 'http://mackerron.com'), binary: yes, success: (req) ->
-    pw.done albumData: albumData, img: req.responseText
+  xhr url: imgUrl.replace(/^http:\//, 'http://mackerron.com'), type: 'arraybuffer', success: (req) ->
+    pw.done albumData: albumData, img: new Uint8Array(req.response)
   

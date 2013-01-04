@@ -2,14 +2,43 @@
 (function() {
   var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
+    __slice = [].slice;
+
+  Uint8ArrayReader.prototype.lastIndexOf = function(binStr) {
+    var c, dataCompPos, dataEnd, dataPos, seq, seqEnd, seqPos, _i, _j;
+    seq = (function() {
+      var _i, _len, _ref, _results;
+      _ref = binStr.split('');
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        c = _ref[_i];
+        _results.push(0xff & c.charCodeAt(0));
+      }
+      return _results;
+    })();
+    seqEnd = seq.length - 1;
+    dataEnd = this.data.length - 1;
+    for (dataPos = _i = dataEnd; dataEnd <= 0 ? _i <= 0 : _i >= 0; dataPos = dataEnd <= 0 ? ++_i : --_i) {
+      for (seqPos = _j = seqEnd; seqEnd <= 0 ? _j <= 0 : _j >= 0; seqPos = seqEnd <= 0 ? ++_j : --_j) {
+        dataCompPos = dataPos - (seqEnd - seqPos);
+        if (this.data[dataCompPos] !== seq[seqPos]) {
+          break;
+        }
+        if (seqPos === 0) {
+          return dataCompPos;
+        }
+      }
+    }
+    return -1;
+  };
 
   this.PDFObj = (function() {
 
     function PDFObj(objNum, contents) {
       this.objNum = objNum;
       this.ref = "" + this.objNum + " 0 R";
-      this.binaryString = "\n\n" + this.objNum + " 0 obj\n" + contents + "\nendobj";
+      this.blob = new Blob(["\n" + this.objNum + " 0 obj\n", contents, "\nendobj\n"]);
     }
 
     return PDFObj;
@@ -21,7 +50,7 @@
     __extends(PDFStream, _super);
 
     function PDFStream(objNum, stream) {
-      PDFStream.__super__.constructor.call(this, objNum, "<<\n/Length " + stream.length + "\n>>\nstream\n" + stream + "\nendstream");
+      PDFStream.__super__.constructor.call(this, objNum, new Blob(["\n<<\n/Length " + stream.length + "\n>>\nstream\n", stream, "\nendstream\n"]));
     }
 
     return PDFStream;
@@ -38,7 +67,7 @@
 
     function PDFJPEG(objNum, jpeg) {
       var bits, channels, code, colorSpace, decodeParam, length, r, segmentLength;
-      r = new BinStringReader(jpeg);
+      r = new Uint8ArrayReader(jpeg);
       if (r.chars(PDFJPEG.header.length) !== PDFJPEG.header) {
         this.error = 'Invalid header in JPEG';
         return;
@@ -79,7 +108,7 @@
       if (this.error != null) {
         return;
       }
-      PDFJPEG.__super__.constructor.call(this, objNum, "<<\n/Type /XObject\n/Subtype /Image\n/Filter /DCTDecode\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + jpeg.length + "\n" + decodeParam + "\n>>\nstream\n" + jpeg + "\nendstream");
+      PDFJPEG.__super__.constructor.call(this, objNum, new Blob(["<<\n/Type /XObject\n/Subtype /Image\n/Filter /DCTDecode\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + jpeg.length + "\n" + decodeParam + "\n>>\nstream\n", jpeg, "\nendstream\n"]));
     }
 
     return PDFJPEG;
@@ -94,12 +123,12 @@
 
     function PDFPNG(objNum, png, pdf) {
       var bits, chunkSize, colorSpace, colorType, colors, compressionMethod, filterMethod, imageData, interlaceMethod, palette, paletteObj, r, section;
-      r = new BinStringReader(png);
+      r = new Uint8ArrayReader(png);
       if (r.chars(PDFPNG.header.length) !== PDFPNG.header) {
         this.error = 'Invalid header in PNG';
         return;
       }
-      imageData = '';
+      imageData = [];
       while (!r.eof()) {
         chunkSize = r.uint32be();
         section = r.chars(4);
@@ -115,10 +144,10 @@
             r.skip(chunkSize - 13);
             break;
           case 'PLTE':
-            palette = r.chars(chunkSize);
+            palette = r.subarray(chunkSize);
             break;
           case 'IDAT':
-            imageData += r.chars(chunkSize);
+            imageData.push(r.subarray(chunkSize));
             break;
           case 'IEND':
             break;
@@ -171,7 +200,7 @@
       if (this.error != null) {
         return;
       }
-      PDFPNG.__super__.constructor.call(this, objNum, "<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + imageData.length + "\n/Filter /FlateDecode\n/DecodeParms <<\n  /Predictor 15\n  /Colors " + colors + "\n  /BitsPerComponent " + bits + "\n  /Columns " + this.width + "\n  >>\n>>\nstream\n" + imageData + "\nendstream");
+      PDFPNG.__super__.constructor.call(this, objNum, new Blob(["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + imageData.length + "\n/Filter /FlateDecode\n/DecodeParms <<\n  /Predictor 15\n  /Colors " + colors + "\n  /BitsPerComponent " + bits + "\n  /Columns " + this.width + "\n  >>\n>>\nstream\n"].concat(__slice.call(imageData), ["\nendstream\n"])));
     }
 
     return PDFPNG;
@@ -461,11 +490,13 @@
     };
 
     function PDFAppend(basePDF) {
-      var trailer;
+      var reader, trailer;
       this.basePDF = basePDF;
       this.objs = [];
       this.baseLen = this.basePDF.length;
-      trailer = this.basePDF.substring(this.basePDF.lastIndexOf('trailer'));
+      reader = new Uint8ArrayReader(this.basePDF);
+      reader.seek(reader.lastIndexOf('trailer'));
+      trailer = reader.chars();
       this.nextFreeObjNum = +trailer.match(/\s+\/Size\s+(\d+)\s+/)[1];
       this.root = trailer.match(/\s+\/Root\s+(\d+ \d+ R)\s+/)[1];
       this.info = trailer.match(/\s+\/Info\s+(\d+ \d+ R)\s+/)[1];
@@ -503,6 +534,47 @@
     };
 
     PDFAppend.prototype.asBinaryString = function() {
+      var body, consecutiveObjSets, currentSet, lastObjNum, o, objOffset, os, trailer, xref, _i, _j, _k, _len, _len1, _len2, _ref;
+      this.objs.sort(function(a, b) {
+        return a.objNum - b.objNum;
+      });
+      body = ((function() {
+        var _i, _len, _ref, _results;
+        _ref = this.objs;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          o = _ref[_i];
+          _results.push(o.binaryString);
+        }
+        return _results;
+      }).call(this)).join('');
+      consecutiveObjSets = [];
+      lastObjNum = null;
+      _ref = this.objs;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        o = _ref[_i];
+        if (!((lastObjNum != null) && o.objNum === lastObjNum + 1)) {
+          consecutiveObjSets.push((currentSet = []));
+        }
+        currentSet.push(o);
+        lastObjNum = o.objNum;
+      }
+      xref = "\n\nxref\n0 1\n0000000000 65535 f \n";
+      objOffset = this.baseLen;
+      for (_j = 0, _len1 = consecutiveObjSets.length; _j < _len1; _j++) {
+        os = consecutiveObjSets[_j];
+        xref += "" + os[0].objNum + " " + os.length + "\n";
+        for (_k = 0, _len2 = os.length; _k < _len2; _k++) {
+          o = os[_k];
+          xref += "" + (PDFAppend.zeroPad(objOffset, 10)) + " 00000 n \n";
+          objOffset += o.binaryString.length;
+        }
+      }
+      trailer = "\ntrailer\n<<\n/Root " + this.root + "\n/Info " + this.info + "\n/Prev " + this.baseStartXref + "\n/Size " + this.nextFreeObjNum + "\n/ID [<" + this.id + "> <" + (PDFAppend.randomId()) + ">]\n>>\n\nstartxref\n" + objOffset + "\n%%EOF";
+      return this.basePDF + body + xref + trailer;
+    };
+
+    PDFAppend.prototype.asBlob = function() {
       var body, consecutiveObjSets, currentSet, lastObjNum, o, objOffset, os, trailer, xref, _i, _j, _k, _len, _len1, _len2, _ref;
       this.objs.sort(function(a, b) {
         return a.objNum - b.objNum;

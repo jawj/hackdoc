@@ -278,12 +278,20 @@
       return this.offset += n;
     };
 
+    BinReader.prototype.seek = function(n) {
+      return this.offset = n;
+    };
+
     BinReader.prototype.chars = function(n, str) {
-      var i, _i;
+      var end, i, _i;
+      if (n == null) {
+        n = Infinity;
+      }
       if (str == null) {
         str = '';
       }
-      for (i = _i = 0; 0 <= n ? _i < n : _i > n; i = 0 <= n ? ++_i : --_i) {
+      end = Math.min(n, this.data.length - this.offset);
+      for (i = _i = 0; 0 <= end ? _i < end : _i > end; i = 0 <= end ? ++_i : --_i) {
         str += String.fromCharCode(this.uchar());
       }
       return str;
@@ -331,6 +339,10 @@
 
     Uint8ArrayReader.prototype.uchar = function() {
       return this.data[this.offset++];
+    };
+
+    Uint8ArrayReader.prototype.subarray = function(n) {
+      return this.data.subarray(this.offset, (this.offset += n));
     };
 
     return Uint8ArrayReader;
