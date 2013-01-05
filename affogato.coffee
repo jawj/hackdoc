@@ -77,15 +77,15 @@ get.uniqueTags = 'html body frameset head title base'.split(' ')
   req.onreadystatechange = -> 
     if req.readyState is 4 and (req.status is 200 or not location.href.match /^https?:/)
       opts.success(req)
-  if opts.type is 'binString'
-    req.overrideMimeType 'text/plain; charset=x-user-defined'
-  else if opts.type?
-    req.responseType = opts.type
   req.overrideMimeType opts.mime if opts.mime?
   req.user = opts.user if opts.user?
   req.password = opts.password if opts.password?
   req.setRequestHeader k, v for k, v of opts.headers if opts.headers?
   req.open method, opts.url
+  if opts.type is 'binString'
+    req.overrideMimeType 'text/plain; charset=x-user-defined'
+  else if opts.type?
+    req.responseType = opts.type
   req.send opts.data
   yes
 

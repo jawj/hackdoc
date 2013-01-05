@@ -191,11 +191,6 @@
         return opts.success(req);
       }
     };
-    if (opts.type === 'binString') {
-      req.overrideMimeType('text/plain; charset=x-user-defined');
-    } else if (opts.type != null) {
-      req.responseType = opts.type;
-    }
     if (opts.mime != null) {
       req.overrideMimeType(opts.mime);
     }
@@ -213,6 +208,11 @@
       }
     }
     req.open(method, opts.url);
+    if (opts.type === 'binString') {
+      req.overrideMimeType('text/plain; charset=x-user-defined');
+    } else if (opts.type != null) {
+      req.responseType = opts.type;
+    }
     req.send(opts.data);
     return true;
   };
