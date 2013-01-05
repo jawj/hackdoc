@@ -282,7 +282,7 @@
       return this.offset = n;
     };
 
-    BinReader.prototype.chars = function(n, str) {
+    BinReader.prototype.binString = function(n, str) {
       var end, i, _i;
       if (n == null) {
         n = Infinity;

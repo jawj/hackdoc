@@ -26,7 +26,8 @@ mm2pt = (mm) -> mm / 25.4 * 72
 pw = new ParallelWaiter 2, (data) ->
 
   pdf = new PDFAppend data.pdf
-  imgObj = pdf.addImg data.img
+  imgObj = new PDFImage pdf, data.img
+  console.log imgObj
   
   {artist, name: albumName} = data.albumData.album
   # artist += ' ' + artist + ' ' + artist + ' ' + artist  # test long artist/album names
@@ -54,15 +55,15 @@ pw = new ParallelWaiter 2, (data) ->
   
   
   # add reference to fonts as new objects
-  fontObj     = pdf.addObj font,     type: PDFBuiltInFont
-  fontBoldObj = pdf.addObj fontBold, type: PDFBuiltInFont
+  fontObj     = new PDFFont pdf, font
+  fontBoldObj = new PDFFont pdf, fontBold
   
   mediaBox = "[0 #{pageSizes.a4.h - pageSize.h} #{pageSize.w} #{pageSizes.a4.h}]"
   
   # front insert
   
   # content stream for front insert
-  frontContent = pdf.addObj """
+  frontContent = new PDFStream pdf, """
     q  % colour block
     #{bgCol.join ' '} rg  % fill colour
     #{fix mm2pt 75} #{fix pageSizes.a4.h - mm2pt 255} #{fix mm2pt 120} #{fix mm2pt 120} re f  % rect, fill
@@ -84,10 +85,10 @@ pw = new ParallelWaiter 2, (data) ->
     0 1 -1 0 0 0 cm  % rotate 90deg a-cw
     /AlbumArt Do
     Q
-    """, type: PDFStream, minify: yes
+    """, minify: yes
   
   # replace page 1 object, adding a reference to our new content and fiddling with MediaBox in case of letter paper
-  pdf.addObj """
+  new PDFObj pdf, """
     <<
     /Type /Page /Parent 3 0 R /Resources 6 0 R
     /Contents [#{frontContent.ref} 4 0 R]
@@ -96,7 +97,7 @@ pw = new ParallelWaiter 2, (data) ->
     """, num: 2
   
   # replace page 1 resources object, adding references to our new fonts and images (and all ProcSets)
-  pdf.addObj """
+  new PDFObj pdf, """
     <<
     /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R /Cs2 9 0 R >>
     /Font <<
@@ -168,7 +169,7 @@ pw = new ParallelWaiter 2, (data) ->
     break if height < maxTrackHeight
   
   # content stream for back insert
-  backContent = pdf.addObj """
+  backContent = new PDFStream pdf, """
     q  % colour block
     #{bgCol.join ' '} rg  % fill colour
     #{fix mm2pt 75} #{fix pageSizes.a4.h - mm2pt 165} #{fix mm2pt 117} #{fix mm2pt 150} re f  % rect, fill
@@ -189,10 +190,10 @@ pw = new ParallelWaiter 2, (data) ->
     #{trackCommands}
     ET
     Q
-    """, type: PDFStream, minify: yes
+    """, minify: yes
       
   # replace page 2 object, adding a reference to our new content and fiddling with MediaBox in case of letter paper
-  pdf.addObj """
+  new PDFObj pdf, """
     <<
     /Type /Page /Parent 3 0 R /Resources 24 0 R
     /Contents [#{backContent.ref} 22 0 R]
@@ -201,7 +202,7 @@ pw = new ParallelWaiter 2, (data) ->
     """, num: 21
   
   # replace page 2 resources object, adding references to our new fonts
-  pdf.addObj """
+  new PDFObj pdf, """
     <<
     /ProcSet [ /PDF /Text ] /ColorSpace << /Cs2 9 0 R /Cs1 7 0 R >>
     /Font <<
@@ -211,19 +212,13 @@ pw = new ParallelWaiter 2, (data) ->
     >>
     """, num: 24
   
-  # make tag: 'a', href: pdf.asDataURI(), text: 'PDF (data URI)', parent: get(tag: 'body')
-  
-  bs = pdf.asBinaryString()
-  len = bs.length
-  u8a = new Uint8Array (bs.charCodeAt(i) & 0xff for i in [0...len])
-  b = new Blob [u8a], type: 'application/pdf'
-  make tag: 'a', href: (URL ? webkitURL).createObjectURL(b), text: 'PDF (Blob URL)', parent: get(tag: 'body')
+  make tag: 'a', href: (URL ? webkitURL).createObjectURL(pdf.toBlob()), text: 'PDF (Blob URL)', parent: get(tag: 'body')
 
 albumQuery = 'http://ws.audioscrobbler.com/2.0/?' + 
   'api_key=2113885e020cefe1d72f95d8378d32c1&method=album.getinfo&format=json&callback=<cb>&' + 
   location.search.substring 1
 
-xhr url: 'template.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: new Uint8Array(req.response)
+xhr url: 'template.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: req.response
 jsonp url: albumQuery, success: (albumData) ->
   imgs = {}
   for img in albumData.album.image
@@ -232,5 +227,5 @@ jsonp url: albumQuery, success: (albumData) ->
     imgUrl = imgs[size]
     break if imgUrl?
   xhr url: imgUrl.replace(/^http:\//, 'http://mackerron.com'), type: 'arraybuffer', success: (req) ->
-    pw.done albumData: albumData, img: new Uint8Array(req.response)
+    pw.done albumData: albumData, img: req.response
   

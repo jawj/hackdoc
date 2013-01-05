@@ -109,7 +109,7 @@ class @BinReader
   constructor: (@data) -> @offset = 0
   skip: (n) -> @offset += n
   seek: (n) -> @offset = n
-  chars: (n = Infinity, str = '') ->
+  binString: (n = Infinity, str = '') ->
     end = Math.min n, @data.length - @offset
     for i in [0...end]
       str += String.fromCharCode @uchar()
@@ -125,4 +125,4 @@ class @Uint8ArrayReader extends BinReader
   # keeps position, and compatible with older browsers than DataView
   uchar: -> @data[@offset++]
   subarray: (n) -> @data.subarray @offset, (@offset += n)
-    
+  

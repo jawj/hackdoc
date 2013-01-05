@@ -1,5 +1,5 @@
 
-Uint8ArrayReader::lastIndexOf = (binStr) ->
+Uint8ArrayReader::lastIndexOf = (binStr) ->  # TODO: search manually for 'trailer' instead
   seq = for c in binStr.split ''
     0xff & c.charCodeAt 0
   seqEnd = seq.length - 1
@@ -12,26 +12,34 @@ Uint8ArrayReader::lastIndexOf = (binStr) ->
   return -1
 
 class @PDFObj
-  constructor: (@objNum, contents) ->
+  constructor: (pdf, parts, opts = {}) ->
+    parts = [parts] unless parts.constructor is Array
+    @objNum = opts.num ? pdf.nextObjNum()
     @ref = "#{@objNum} 0 R"
-    @blob = new Blob ["\n#{@objNum} 0 obj\n", contents, "\nendobj\n"]
+    @parts = ["\n#{@objNum} 0 obj\n", parts..., "\nendobj\n"]
+    @length = 0
+    (@length += part.length) for part in @parts
+    pdf.addObj @
+  
 
 class @PDFStream extends PDFObj
-  constructor: (objNum, stream) ->
-    super objNum, new Blob ["\n<<\n/Length #{stream.length}\n>>\nstream\n", stream, "\nendstream\n"]
+  constructor: (pdf, stream, opts = {}) ->
+    stream = stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n') if opts.minify?
+    super pdf, ["<<\n/Length #{stream.length}\n>>\nstream\n", stream, "\nendstream"], opts
 
 class @PDFJPEG extends PDFObj  # adapted from Prawn
   @header = '\xff\xd8\xff'
   @sofBlocks = [0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]
-  constructor: (objNum, jpeg) ->
+  @identify = (arrBuf) ->
+    r = new Uint8ArrayReader new Uint8Array arrBuf
+    r.binString(PDFJPEG.header.length) is PDFJPEG.header
+  
+  constructor: (pdf, jpegArrBuf, opts) ->
+    jpeg = new Uint8Array jpegArrBuf
     r = new Uint8ArrayReader jpeg
-    unless r.chars(PDFJPEG.header.length) is PDFJPEG.header
-      @error = 'Invalid header in JPEG'
-      return
-      
-    r.skip 1
+    r.skip PDFJPEG.header.length + 1
     segmentLength = r.uint16be()
-    r.skip(segmentLength - 2)
+    r.skip segmentLength - 2
     
     while not r.eof()
       if r.uchar() isnt 0xff
@@ -57,8 +65,7 @@ class @PDFJPEG extends PDFObj  # adapted from Prawn
       else @error = 'Unsupported number of channels in JPEG'
     return if @error?
     
-    super objNum, new Blob [
-      """
+    super pdf, ["""
       <<
       /Type /XObject
       /Subtype /Image
@@ -70,11 +77,7 @@ class @PDFJPEG extends PDFObj  # adapted from Prawn
       /Length #{jpeg.length}
       #{decodeParam}
       >>
-      stream\n
-      """
-      jpeg
-      "\nendstream\n"
-    ]
+      stream\n""", jpeg, "\nendstream\n"], opts
   
 
 class @PDFPNG extends PDFObj  # adapted from Prawn
@@ -86,16 +89,19 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
   # not honoured: tRNS-block palette/index transparency
   
   @header = '\x89PNG\r\n\x1a\n'
-  constructor: (objNum, png, pdf) ->
+  @identify = (arrBuf) ->
+    r = new Uint8ArrayReader new Uint8Array arrBuf
+    r.binString(PDFPNG.header.length) is PDFPNG.header
+    
+  constructor: (pdf, pngArrBuf, opts) ->
+    png = new Uint8Array pngArrBuf
     r = new Uint8ArrayReader png
-    unless r.chars(PDFPNG.header.length) is PDFPNG.header
-      @error = 'Invalid header in PNG'
-      return
+    r.skip PDFPNG.header.length
     
     imageData = []
     while not r.eof()
       chunkSize = r.uint32be()
-      section = r.chars 4
+      section = r.binString 4
       switch section
         when 'IHDR'  # see http://www.w3.org/TR/PNG-Chunks.html#C.IHDR
           @width = r.uint32be()
@@ -109,7 +115,7 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
         when 'PLTE'
           palette = r.subarray chunkSize
         when 'IDAT'
-          imageData.push(r.subarray chunkSize)
+          imageData.push r.subarray chunkSize
         when 'IEND'
           break
         else 
@@ -131,13 +137,12 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
       when 0 then '/DeviceGray'
       when 2 then '/DeviceRGB'
       when 3
-        paletteObj = pdf.addObj palette, type: PDFStream
+        paletteObj = new PDFStream pdf, [palette]
         "[/Indexed /DeviceRGB #{palette.length / 3 - 1} #{paletteObj.ref}]"
       else @error = 'Unsupported number of colours in PNG'
     return if @error?
     
-    super objNum, new Blob [
-      """
+    super pdf, ["""
       <<
       /Type /XObject
       /Subtype /Image
@@ -154,11 +159,32 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
         /Columns #{@width}
         >>
       >>
-      stream\n
-      """
-      imageData...
-      "\nendstream\n"
-    ]
+      stream\n""", imageData..., "\nendstream\n"], opts
+  
+
+class @PDFImage
+  constructor: (pdf, arrBuf, opts) ->
+    if PDFJPEG.identify arrBuf 
+      return new PDFJPEG pdf, arrBuf, opts
+    else if PDFPNG.identify arrBuf 
+      return new PDFPNG pdf, arrBuf, opts
+    else 
+      @error = 'No valid JPEG or PNG header in image'
+
+class @PDFFont extends PDFObj
+  constructor: (pdf, fontName, opts) ->
+    super pdf, ["""
+      <<
+      /Type /Font 
+      /Subtype /Type1
+      /BaseFont /#{fontName}
+      /Encoding <<
+        /Type /Encoding
+        /BaseEncoding /MacRomanEncoding
+        /Differences [219 /Euro]
+        >>
+      >>
+      """], opts
   
 
 class @PDFText
@@ -306,22 +332,6 @@ class @PDFText
     {commands, para, width, height}
   
 
-class @PDFBuiltInFont extends PDFObj
-  constructor: (objNum, fontName) ->
-    # encoding matches metrics.js
-    super objNum, """
-      <<
-      /Type /Font 
-      /Subtype /Type1
-      /BaseFont /#{fontName}
-      /Encoding <<
-        /Type /Encoding
-        /BaseEncoding /MacRomanEncoding
-        /Differences [219 /Euro]
-        >>
-      >>"""
-  
-
 class @PDFAppend
   @zeroPad = (n, len) ->
     zeroes = '0000000000'  # for len up to 10
@@ -331,13 +341,14 @@ class @PDFAppend
   @randomId = ->
     (Math.floor(Math.random() * 15.99).toString(16) for i in [0..31]).join ''
   
-  constructor: (@basePDF) ->
-    @objs = []    
+  constructor: (basePDFArrBuf) ->
+    @objs = []
+    @basePDF = new Uint8Array basePDFArrBuf
     @baseLen = @basePDF.length
     
     reader = new Uint8ArrayReader @basePDF
     reader.seek reader.lastIndexOf 'trailer'
-    trailer = reader.chars()
+    trailer = reader.binString()
     
     @nextFreeObjNum = +trailer.match(/\s+\/Size\s+(\d+)\s+/)[1]
     @root = trailer.match(/\s+\/Root\s+(\d+ \d+ R)\s+/)[1]
@@ -345,27 +356,11 @@ class @PDFAppend
     @id = trailer.match(/\s+\/ID\s+\[\s*<([0-9a-f]+)>\s+/i)[1]
     @baseStartXref = +trailer.match(/(\d+)\s+%%EOF\s+$/)[1]
   
-  addObj: (rawContent, opts = {}) ->
-    objNum = opts.num ? @nextFreeObjNum++
-    objType = opts.type ? PDFObj
-    content = if opts.minify?
-      rawContent.replace(/%.*$/mg, '').replace(/\s+\n/g, '\n')
-    else rawContent
-    obj = new objType objNum, content, @
-    @objs.push obj unless obj.error?
-    obj
-  
-  addImg: (img, opts = {}) ->
-    opts.type = PDFJPEG
-    imgObj = @addObj img, opts
-    if imgObj.error?
-      opts.type = PDFPNG
-      imgObj = @addObj img, opts
-    imgObj
-  
-  asBinaryString: ->
+  nextObjNum: -> @nextFreeObjNum++
+  addObj: (obj) -> @objs.push obj
+  toBlob: ->
     @objs.sort (a, b) -> a.objNum - b.objNum
-    body = (o.binaryString for o in @objs).join ''
+    bodyParts = [].concat (o.parts for o in @objs)...
     
     consecutiveObjSets = []
     lastObjNum = null
@@ -382,7 +377,7 @@ class @PDFAppend
       xref += "#{os[0].objNum} #{os.length}\n"
       for o in os
         xref += "#{PDFAppend.zeroPad objOffset, 10} 00000 n \n"
-        objOffset += o.binaryString.length
+        objOffset += o.length
     
     trailer = """\ntrailer
       <<
@@ -397,45 +392,7 @@ class @PDFAppend
       #{objOffset}
       %%EOF
     """
-    @basePDF + body + xref + trailer
+    new Blob [@basePDF, bodyParts..., xref, trailer], type: 'application/pdf'
   
-  asBlob: ->
-    @objs.sort (a, b) -> a.objNum - b.objNum
-    body = (o.binaryString for o in @objs).join ''
-    
-    consecutiveObjSets = []
-    lastObjNum = null
-    for o in @objs
-      consecutiveObjSets.push (currentSet = []) unless lastObjNum? and o.objNum is lastObjNum + 1
-      currentSet.push o
-      lastObjNum = o.objNum
-    xref = """\n
-      xref
-      0 1
-      0000000000 65535 f \n"""
-    objOffset = @baseLen
-    for os in consecutiveObjSets
-      xref += "#{os[0].objNum} #{os.length}\n"
-      for o in os
-        xref += "#{PDFAppend.zeroPad objOffset, 10} 00000 n \n"
-        objOffset += o.binaryString.length
-    
-    trailer = """\ntrailer
-      <<
-      /Root #{@root}
-      /Info #{@info}
-      /Prev #{@baseStartXref}
-      /Size #{@nextFreeObjNum}
-      /ID [<#{@id}> <#{PDFAppend.randomId()}>]
-      >>
-      
-      startxref
-      #{objOffset}
-      %%EOF
-    """
-    @basePDF + body + xref + trailer
-  
-  asDataURI: ->
-    b64 @asBinaryString(), 'data:application/pdf;base64,'
-  
+
 
