@@ -4,9 +4,10 @@
 
   pw = new ParallelWaiter(3, function(data) {
     var contentStream, helvObj, jpegObj, pdf, pngObj, text1, text1full, text2, text2right, timesObj;
+    console.log(data);
     pdf = new PDFAppend(data.pdf);
-    jpegObj = pdf.addImg(data.jpeg);
-    pngObj = pdf.addImg(data.png);
+    jpegObj = new PDFImage(pdf, data.jpeg);
+    pngObj = new PDFImage(pdf, data.png);
     text1 = PDFText.preprocessPara('Affluent finance AWAY 6×6 £12 €13 – 15 x hello—again LOVE HATE YOU ME 123‰ Höhner 2πr. Lorem ipsum do-lor sit amet, consectetur adip-iscing elit. Ut eu ffffff nec nunf pellentesquelaoreeteuatnuncphasellusnonmagnai-arcu consequat tincidunt sit amet conv-allis eros. In pellen–tesque pellentesque felis, ac varius nulla vehicula id. Sed rut-rum, quam nec semper dapibus, mi lorem adipiscing lectus, vel bibendum lorem erat quis neque. pellentesquelaoreeteuatnuncphasellusnonmagnaidconesqyatys x', 'Times-Roman', false);
     text2 = PDFText.preprocessPara('The wind was a torrent of darkness among the gusty fleas, The moon was a ghostly galleon tossed upon cloudy seas, The road was a ribbon of moonlight over the purple moor, And the highwayman came riding— Riding—riding— The highwayman came fiding, up to the old inn-door.', 'Times-Roman');
     text1full = PDFText.flowPara(text1, 12, {
@@ -17,7 +18,7 @@
       maxWidth: 420,
       align: 'right'
     });
-    contentStream = pdf.addObj("q  0.7 0.7 0.7 RG  72 " + (600 + 12) + " 250 " + (-text1full.height) + " re S  Q\nBT\n  72 600 Td\n  /TR 12 Tf\n  " + text1full.commands + "\nET\nq  1 0.5 0 RG  " + (72 + 420 - text2right.width) + " " + (350 + 14) + " " + text2right.width + " " + (-text2right.height) + " re S  Q\nBT\n  72 350 Td\n  /TR 14 Tf\n  " + text2right.commands + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
+    contentStream = new PDFStream(pdf, "q  0.7 0.7 0.7 RG  72 " + (600 + 12) + " 250 " + (-text1full.height) + " re S  Q\nBT\n  72 600 Td\n  /TR 12 Tf\n  " + text1full.commands + "\nET\nq  1 0.5 0 RG  " + (72 + 420 - text2right.width) + " " + (350 + 14) + " " + text2right.width + " " + (-text2right.height) + " re S  Q\nBT\n  72 350 Td\n  /TR 14 Tf\n  " + text2right.commands + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
       maxWidth: 420,
       align: 'left'
     }).commands) + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
@@ -26,25 +27,19 @@
     }).commands) + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
       maxWidth: 420,
       align: 'centre'
-    }).commands) + "\nET\nq\n  72 0 0 72 400 400 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm Do\nQ\nq\n  72 0 0 72 400 600 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm2 Do\nQ", {
-      type: PDFStream
-    });
-    pdf.addObj("<< \n/Type /Page \n/Parent 3 0 R\n/Resources 6 0 R\n/Contents [4 0 R " + contentStream.ref + "]\n/MediaBox [0 0 595 842]\n>>", {
+    }).commands) + "\nET\nq\n  72 0 0 72 400 400 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm Do\nQ\nq\n  72 0 0 72 400 600 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm2 Do\nQ");
+    new PDFObj(pdf, "<< \n/Type /Page \n/Parent 3 0 R\n/Resources 6 0 R\n/Contents [4 0 R " + contentStream.ref + "]\n/MediaBox [0 0 595 842]\n>>", {
       num: 2
     });
-    timesObj = pdf.addObj('Times-Roman', {
-      type: PDFBuiltInFont
-    });
-    helvObj = pdf.addObj('Helvetica', {
-      type: PDFBuiltInFont
-    });
-    pdf.addObj("<< \n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R >> \n/Font <<\n  /TT1.0 8 0 R\n  /TR " + timesObj.ref + "\n  /H " + helvObj.ref + "\n>> \n/XObject <<\n  /Im1 9 0 R\n  /MyIm " + jpegObj.ref + "\n  /MyIm2 " + pngObj.ref + "\n>>\n>>", {
+    timesObj = new PDFFont(pdf, 'Times-Roman');
+    helvObj = new PDFFont(pdf, 'Helvetica');
+    new PDFObj(pdf, "<< \n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R >> \n/Font <<\n  /TT1.0 8 0 R\n  /TR " + timesObj.ref + "\n  /H " + helvObj.ref + "\n>> \n/XObject <<\n  /Im1 9 0 R\n  /MyIm " + jpegObj.ref + "\n  /MyIm2 " + pngObj.ref + "\n>>\n>>", {
       num: 6
     });
     return make({
       tag: 'a',
-      href: pdf.asDataURI(),
-      text: 'PDF',
+      href: (typeof URL !== "undefined" && URL !== null ? URL : webkitURL).createObjectURL(pdf.toBlob()),
+      text: 'PDF (Blob URL)',
       parent: get({
         tag: 'body'
       })
@@ -53,30 +48,30 @@
 
   xhr({
     url: 'pdf/kernligimg.pdf',
-    binary: true,
+    type: 'arraybuffer',
     success: function(req) {
       return pw.done({
-        pdf: req.responseText
+        pdf: req.response
       });
     }
   });
 
   xhr({
     url: 'images/pound-coin.jpg',
-    binary: true,
+    type: 'arraybuffer',
     success: function(req) {
       return pw.done({
-        jpeg: req.responseText
+        jpeg: req.response
       });
     }
   });
 
   xhr({
     url: 'images/basn3p01.png',
-    binary: true,
+    type: 'arraybuffer',
     success: function(req) {
       return pw.done({
-        png: req.responseText
+        png: req.response
       });
     }
   });

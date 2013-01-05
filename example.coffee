@@ -1,8 +1,9 @@
 
 pw = new ParallelWaiter 3, (data) ->
+  console.log data
   pdf = new PDFAppend data.pdf
-  jpegObj = pdf.addImg data.jpeg
-  pngObj  = pdf.addImg data.png
+  jpegObj = new PDFImage pdf, data.jpeg
+  pngObj  = new PDFImage pdf, data.png
   
   text1 = PDFText.preprocessPara 'Affluent finance AWAY 6×6 £12 €13 – 15 x hello—again LOVE HATE YOU ME 123‰ Höhner 2πr. Lorem ipsum do-lor sit amet, consectetur adip-iscing elit. Ut eu ffffff nec nunf pellentesquelaoreeteuatnuncphasellusnonmagnai-arcu consequat tincidunt sit amet conv-allis eros. In pellen–tesque pellentesque felis, ac varius nulla vehicula id. Sed rut-rum, quam nec semper dapibus, mi lorem adipiscing lectus, vel bibendum lorem erat quis neque. pellentesquelaoreeteuatnuncphasellusnonmagnaidconesqyatys x', 'Times-Roman', no
   
@@ -12,7 +13,7 @@ pw = new ParallelWaiter 3, (data) ->
   text2right = PDFText.flowPara text2, 14, maxWidth: 420, align: 'right'
   
   # add a new object -- an extra content stream
-  contentStream = pdf.addObj """
+  contentStream = new PDFStream pdf, """
     q  0.7 0.7 0.7 RG  72 #{600 + 12} 250 #{- text1full.height} re S  Q
     BT
       72 600 Td
@@ -39,10 +40,10 @@ pw = new ParallelWaiter 3, (data) ->
       72 0 0 72 400 600 cm  % scaleX 0 0 scaleY translateX translateY
       /MyIm2 Do
     Q
-    """, type: PDFStream
+    """
   
   # replace page object, with one change: adding a reference to our new content
-  pdf.addObj """
+  new PDFObj pdf, """
     << 
     /Type /Page 
     /Parent 3 0 R
@@ -53,11 +54,11 @@ pw = new ParallelWaiter 3, (data) ->
     """, num: 2
   
   # add references to Helvetica and Times as new objects
-  timesObj = pdf.addObj 'Times-Roman', type: PDFBuiltInFont
-  helvObj  = pdf.addObj 'Helvetica',   type: PDFBuiltInFont
+  timesObj = new PDFFont pdf, 'Times-Roman'
+  helvObj  = new PDFFont pdf, 'Helvetica'
   
   # replace page resources object, adding references to our new fonts and images
-  pdf.addObj """
+  new PDFObj pdf, """
     << 
     /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R >> 
     /Font <<
@@ -73,8 +74,8 @@ pw = new ParallelWaiter 3, (data) ->
     >>
     """, num: 6
   
-  make tag: 'a', href: pdf.asDataURI(), text: 'PDF', parent: get(tag: 'body')
+  make tag: 'a', href: (URL ? webkitURL).createObjectURL(pdf.toBlob()), text: 'PDF (Blob URL)', parent: get(tag: 'body')
 
-xhr url: 'pdf/kernligimg.pdf',    binary: yes, success: (req) -> pw.done pdf:  req.responseText
-xhr url: 'images/pound-coin.jpg', binary: yes, success: (req) -> pw.done jpeg: req.responseText
-xhr url: 'images/basn3p01.png',   binary: yes, success: (req) -> pw.done png:  req.responseText
+xhr url: 'pdf/kernligimg.pdf',    type: 'arraybuffer', success: (req) -> pw.done pdf:  req.response
+xhr url: 'images/pound-coin.jpg', type: 'arraybuffer', success: (req) -> pw.done jpeg: req.response
+xhr url: 'images/basn3p01.png',   type: 'arraybuffer', success: (req) -> pw.done png:  req.response

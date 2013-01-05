@@ -136,7 +136,7 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
       when 0 then '/DeviceGray'
       when 2 then '/DeviceRGB'
       when 3
-        paletteObj = new PDFStream pdf, [palette]
+        paletteObj = new PDFStream pdf, palette
         "[/Indexed /DeviceRGB #{palette.length / 3 - 1} #{paletteObj.ref}]"
       else @error = 'Unsupported number of colours in PNG'
     return if @error?
@@ -394,5 +394,4 @@ class @PDFAppend
     """
     new Blob [@basePDF, bodyParts..., xref, trailer], type: 'application/pdf'
   
-
 

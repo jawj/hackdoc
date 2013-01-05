@@ -216,7 +216,7 @@
           case 2:
             return '/DeviceRGB';
           case 3:
-            paletteObj = new PDFStream(pdf, [palette]);
+            paletteObj = new PDFStream(pdf, palette);
             return "[/Indexed /DeviceRGB " + (palette.length / 3 - 1) + " " + paletteObj.ref + "]";
           default:
             return this.error = 'Unsupported number of colours in PNG';
