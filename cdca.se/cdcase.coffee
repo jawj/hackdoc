@@ -27,7 +27,6 @@ pw = new ParallelWaiter 2, (data) ->
 
   pdf = new PDFAppend data.pdf
   imgObj = new PDFImage pdf, data.img
-  console.log imgObj
   
   {artist, name: albumName} = data.albumData.album
   # artist += ' ' + artist + ' ' + artist + ' ' + artist  # test long artist/album names

@@ -60,7 +60,7 @@ class @PDFJPEG extends PDFObj  # adapted from Prawn
       when 1 then '/DeviceGray'
       when 3 then '/DeviceRGB'
       when 4
-        decodeParam = '/Decode [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]'
+        decodeParam = '\n/Decode [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]'
         '/DeviceCMYK'
       else @error = 'Unsupported number of channels in JPEG'
     return if @error?
@@ -74,10 +74,9 @@ class @PDFJPEG extends PDFObj  # adapted from Prawn
       /BitsPerComponent #{bits}
       /Width #{@width}
       /Height #{@height}
-      /Length #{jpeg.length}
-      #{decodeParam}
+      /Length #{jpeg.length}#{decodeParam}
       >>
-      stream\n""", jpeg, "\nendstream\n"], opts
+      stream\n""", jpeg, "\nendstream"], opts
   
 
 class @PDFPNG extends PDFObj  # adapted from Prawn
@@ -170,6 +169,7 @@ class @PDFImage
       return new PDFPNG pdf, arrBuf, opts
     else 
       @error = 'No valid JPEG or PNG header in image'
+  
 
 class @PDFFont extends PDFObj
   constructor: (pdf, fontName, opts) ->
@@ -368,8 +368,8 @@ class @PDFAppend
       consecutiveObjSets.push (currentSet = []) unless lastObjNum? and o.objNum is lastObjNum + 1
       currentSet.push o
       lastObjNum = o.objNum
-    xref = """\n
-      xref
+    xref = """
+      \nxref
       0 1
       0000000000 65535 f \n"""
     objOffset = @baseLen

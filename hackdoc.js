@@ -122,7 +122,7 @@
           case 3:
             return '/DeviceRGB';
           case 4:
-            decodeParam = '/Decode [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]';
+            decodeParam = '\n/Decode [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]';
             return '/DeviceCMYK';
           default:
             return this.error = 'Unsupported number of channels in JPEG';
@@ -131,7 +131,7 @@
       if (this.error != null) {
         return;
       }
-      PDFJPEG.__super__.constructor.call(this, pdf, ["<<\n/Type /XObject\n/Subtype /Image\n/Filter /DCTDecode\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + jpeg.length + "\n" + decodeParam + "\n>>\nstream\n", jpeg, "\nendstream\n"], opts);
+      PDFJPEG.__super__.constructor.call(this, pdf, ["<<\n/Type /XObject\n/Subtype /Image\n/Filter /DCTDecode\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + jpeg.length + decodeParam + "\n>>\nstream\n", jpeg, "\nendstream"], opts);
     }
 
     return PDFJPEG;
@@ -579,7 +579,7 @@
         currentSet.push(o);
         lastObjNum = o.objNum;
       }
-      xref = "\n\nxref\n0 1\n0000000000 65535 f \n";
+      xref = "\nxref\n0 1\n0000000000 65535 f \n";
       objOffset = this.baseLen;
       for (_j = 0, _len1 = consecutiveObjSets.length; _j < _len1; _j++) {
         os = consecutiveObjSets[_j];

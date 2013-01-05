@@ -41,7 +41,6 @@
     var albumName, artist, artistFlow, artistPara, backContent, dur, durFlow, durMatch, durMaxWidth, durRe, fontBoldObj, fontObj, frontContent, height, i, imgObj, k, maxSpineWidth, maxTrackHeight, maxTrackWidth, mediaBox, mins, name, nameFlow, namePara, num, numAndDurSize, numFlow, numMatch, numMaxWidth, numRe, pdf, secs, spineCommands, spineSize, spineSpace, spineXHeightFactor, t, totalWidth, track, trackCommands, trackData, trackSize, trackSpacing, trackText, tracks, v, _i, _j, _k, _l, _len, _len1, _ref3;
     pdf = new PDFAppend(data.pdf);
     imgObj = new PDFImage(pdf, data.img);
-    console.log(imgObj);
     _ref3 = data.albumData.album, artist = _ref3.artist, albumName = _ref3.name;
     tracks = (function() {
       var _i, _len, _ref4, _results;
