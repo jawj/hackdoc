@@ -165,13 +165,15 @@
     new PDFObj(pdf, "<<\n/ProcSet [ /PDF /Text ] /ColorSpace << /Cs2 9 0 R /Cs1 7 0 R >>\n/Font <<\n  /Tc10.0 29 0 R /TT8.1 27 0 R /Tc7.0 25 0 R /Tc9.0 28 0 R\n  /Fnt " + fontObj.ref + " /FntBold " + fontBoldObj.ref + "\n>>\n>>", {
       num: 24
     });
-    return make({
-      tag: 'a',
-      href: (typeof URL !== "undefined" && URL !== null ? URL : webkitURL).createObjectURL(pdf.toBlob()),
-      text: 'PDF (Blob URL)',
-      parent: get({
-        tag: 'body'
-      })
+    return pdf.addReadyListener(function() {
+      return make({
+        tag: 'a',
+        href: (typeof URL !== "undefined" && URL !== null ? URL : webkitURL).createObjectURL(pdf.toBlob()),
+        text: 'PDF (Blob URL)',
+        parent: get({
+          tag: 'body'
+        })
+      });
     });
   });
 

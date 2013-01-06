@@ -1,5 +1,10 @@
 
-Uint8ArrayReader::lastIndexOf = (binStr) ->  # TODO: search manually for 'trailer' instead
+# TODO
+# search manually for 'trailer' instead of lastIndexOf
+# test PDFImageViaCanvas alpha transparency
+# support other PNG transparency types?
+
+Uint8ArrayReader::lastIndexOf = (binStr) ->
   seq = for c in binStr.split ''
     0xff & c.charCodeAt 0
   seqEnd = seq.length - 1
@@ -12,10 +17,12 @@ Uint8ArrayReader::lastIndexOf = (binStr) ->  # TODO: search manually for 'traile
   return -1
 
 class @PDFObj
-  constructor: (pdf, parts, opts = {}) ->
+  constructor: (pdf, parts, opts = {}, refOnly = no) ->
+    #console.log pdf, opts, parts
     parts = [parts] unless parts.constructor is Array
-    @objNum = opts.num ? pdf.nextObjNum()
-    @ref = "#{@objNum} 0 R"
+    @objNum ?= opts.num ? pdf.nextObjNum()
+    @ref ?= "#{@objNum} 0 R"
+    return if refOnly
     @parts = ["\n#{@objNum} 0 obj\n", parts..., "\nendobj\n"]
     @length = 0
     (@length += part.length) for part in @parts
@@ -60,7 +67,7 @@ class @PDFJPEG extends PDFObj  # adapted from Prawn
       when 1 then '/DeviceGray'
       when 3 then '/DeviceRGB'
       when 4
-        decodeParam = '\n/Decode [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]'
+        decodeParam = '\n/Decode [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]'  # really?
         '/DeviceCMYK'
       else @error = 'Unsupported number of channels in JPEG'
     return if @error?
@@ -123,9 +130,9 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
     
     @error = 'Unsupported compression in PNG' if compressionMethod isnt 0  # only 0 is in PNG spec
     @error = 'Unsupported filter in PNG' if filterMethod isnt 0            # ditto
-    @error = 'Unsupported interlacing in PNG' if interlaceMethod isnt 0    # don't support Adam7 (1)
-    @error = 'Unsupported alpha channel in PNG' if colorType in [4, 6]     # don't support alpha transparency
     return if @error?
+    
+    return new PDFImageViaCanvas pdf, pngArrBuf, opts if interlaceMethod isnt 0 or colorType in [4, 6]
     
     colors = switch colorType
       when 0, 3 then 1  # 0 = grayscale, 3 = palette
@@ -160,6 +167,63 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
       >>
       stream\n""", imageData..., "\nendstream\n"], opts
   
+
+class PDFImageViaCanvas extends PDFObj
+  constructor: (pdf, imgArrBuf, opts = {}) ->
+    super pdf, '', opts, yes  # call super constructor with no content so that ref is available
+    pdf.taskStarted()
+    
+    imgBlob = new Blob [new Uint8Array imgArrBuf]
+    imgUrl = (URL ? webkitURL).createObjectURL imgBlob
+    img = make tag: 'img', src: imgUrl
+    img.onload = =>
+      @width = img.width
+      @height = img.height
+      canvas = make tag: 'canvas', width: @width, height: @height
+      ctx = canvas.getContext '2d'
+      ctx.drawImage img, 0, 0
+      pixelArr = (ctx.getImageData 0, 0, @width, @height).data
+      rgbArr   = new Uint8Array @width * @height * 3
+      alphaArr = new Uint8Array @width * @height
+      rgbPos = alphaPos = 0
+      byteCount = pixelArr.length
+      opacityAlwaysFull = yes
+      for i in [0...byteCount] by 4
+        for j in [0...3]
+          rgbArr[rgbPos++] = pixelArr[i + j]
+        alpha = pixelArr[i + 3]
+        alphaArr[alphaPos++] = alpha
+        opacityAlwaysFull = no if alpha isnt 0xff
+      
+      smaskRef = ''
+      unless opacityAlwaysFull
+        smaskStream = new PDFObj pdf, ["""
+          <<
+          /Type /XObject
+          /Subtype /Image
+          /ColorSpace /DeviceGray
+          /BitsPerComponent 8
+          /Width #{@width}
+          /Height #{@height}
+          /Length #{alphaArr.length}
+          >>
+          stream\n""", alphaArr, "\nendstream\n"]
+        smaskRef = "\n/SMask #{smaskStream.ref}"
+      
+      # simulate calling super constructor, with real content this time
+      PDFObj.call @, pdf, ["""
+        <<
+        /Type /XObject
+        /Subtype /Image
+        /ColorSpace /DeviceRGB
+        /BitsPerComponent 8
+        /Width #{@width}
+        /Height #{@height}
+        /Length #{rgbArr.length}#{smaskRef}
+        >>
+        stream\n""", rgbArr, "\nendstream\n"], opts
+      
+      pdf.taskCompleted()
 
 class @PDFImage
   constructor: (pdf, arrBuf, opts) ->
@@ -342,6 +406,9 @@ class @PDFAppend
     (Math.floor(Math.random() * 15.99).toString(16) for i in [0..31]).join ''
   
   constructor: (basePDFArrBuf) ->
+    @awaitingTaskCount = 0
+    @readyListeners = []
+    
     @objs = []
     @basePDF = new Uint8Array basePDFArrBuf
     @baseLen = @basePDF.length
@@ -355,6 +422,15 @@ class @PDFAppend
     @info = trailer.match(/\s+\/Info\s+(\d+ \d+ R)\s+/)[1]
     @id = trailer.match(/\s+\/ID\s+\[\s*<([0-9a-f]+)>\s+/i)[1]
     @baseStartXref = +trailer.match(/(\d+)\s+%%EOF\s+$/)[1]
+  
+  taskStarted: -> @awaitingTaskCount++
+  taskCompleted: -> 
+    if --@awaitingTaskCount is 0
+      func() for func in @readyListeners
+  
+  addReadyListener: (func) ->
+    if @awaitingTaskCount is 0 then func()
+    else @readyListeners.push func
   
   nextObjNum: -> @nextFreeObjNum++
   addObj: (obj) -> @objs.push obj

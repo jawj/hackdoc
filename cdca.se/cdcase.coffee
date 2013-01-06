@@ -211,7 +211,8 @@ pw = new ParallelWaiter 2, (data) ->
     >>
     """, num: 24
   
-  make tag: 'a', href: (URL ? webkitURL).createObjectURL(pdf.toBlob()), text: 'PDF (Blob URL)', parent: get(tag: 'body')
+  pdf.addReadyListener ->
+    make tag: 'a', href: (URL ? webkitURL).createObjectURL(pdf.toBlob()), text: 'PDF (Blob URL)', parent: get(tag: 'body')
 
 albumQuery = 'http://ws.audioscrobbler.com/2.0/?' + 
   'api_key=2113885e020cefe1d72f95d8378d32c1&method=album.getinfo&format=json&callback=<cb>&' + 
