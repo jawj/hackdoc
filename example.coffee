@@ -1,6 +1,10 @@
 
+loadAssets = ->
+  xhr url: 'pdf/kernligimg.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: req.response
+  xhrImg url: 'images/pound-coin.jpg', success: (img) -> pw.done jpeg: img
+  xhrImg url: 'images/basn6a08.png',   success: (img) -> pw.done png:  img
+
 pw = new ParallelWaiter 3, (data) ->
-  console.log data
   pdf = new PDFAppend data.pdf
   jpegObj = new PDFImage pdf, data.jpeg
   pngObj  = new PDFImage pdf, data.png
@@ -37,6 +41,8 @@ pw = new ParallelWaiter 3, (data) ->
       /MyIm Do
     Q
     q
+      0.5 0.5 0.5 rg
+      380 620 112 32 re  f
       72 0 0 72 400 600 cm  % scaleX 0 0 scaleY translateX translateY
       /MyIm2 Do
     Q
@@ -74,8 +80,9 @@ pw = new ParallelWaiter 3, (data) ->
     >>
     """, num: 6
   
-  make tag: 'a', href: (URL ? webkitURL).createObjectURL(pdf.toBlob()), text: 'PDF (Blob URL)', parent: get(tag: 'body')
+  blob = pdf.toBlob()
+  make tag: 'a', href: (URL ? webkitURL).createObjectURL(blob), text: 'PDF', parent: get(tag: 'body'), onclick: ->
+    if navigator.msSaveOrOpenBlob?
+      navigator.msSaveOrOpenBlob blob, "example.pdf"
 
-xhr url: 'pdf/kernligimg.pdf',    type: 'arraybuffer', success: (req) -> pw.done pdf:  req.response
-xhr url: 'images/pound-coin.jpg', type: 'arraybuffer', success: (req) -> pw.done jpeg: req.response
-xhr url: 'images/basn3p01.png',   type: 'arraybuffer', success: (req) -> pw.done png:  req.response
+loadAssets()

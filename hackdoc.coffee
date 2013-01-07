@@ -1,7 +1,7 @@
 
 # TODO
-# test PDFImageViaCanvas alpha transparency
-# support other PNG transparency types?
+# support tRNS in PNG
+# switch all PDFObj subclasses to opts-only args
 
 @xhrImg = (opts) ->
   xhr type: 'arraybuffer', url: opts.url, success: (req) ->
@@ -196,7 +196,7 @@ class @PDFImageViaCanvas extends PDFObj
         /Height #{@height}
         /Length #{alphaArr.length}
         >>
-        stream\n""", alphaArr, "\nendstream\n"]
+        stream\n""", alphaArr, "\nendstream"]
       smaskRef = "\n/SMask #{smaskStream.ref}"
     
     super pdf, ["""
@@ -209,7 +209,7 @@ class @PDFImageViaCanvas extends PDFObj
       /Height #{@height}
       /Length #{rgbArr.length}#{smaskRef}
       >>
-      stream\n""", rgbArr, "\nendstream\n"], opts
+      stream\n""", rgbArr, "\nendstream"], opts
   
 
 class @PDFImage

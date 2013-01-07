@@ -262,10 +262,10 @@
       }
       smaskRef = '';
       if (alphaTrans) {
-        smaskStream = new PDFObj(pdf, ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceGray\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + alphaArr.length + "\n>>\nstream\n", alphaArr, "\nendstream\n"]);
+        smaskStream = new PDFObj(pdf, ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceGray\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + alphaArr.length + "\n>>\nstream\n", alphaArr, "\nendstream"]);
         smaskRef = "\n/SMask " + smaskStream.ref;
       }
-      PDFImageViaCanvas.__super__.constructor.call(this, pdf, ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + rgbArr.length + smaskRef + "\n>>\nstream\n", rgbArr, "\nendstream\n"], opts);
+      PDFImageViaCanvas.__super__.constructor.call(this, pdf, ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + rgbArr.length + smaskRef + "\n>>\nstream\n", rgbArr, "\nendstream"], opts);
     }
 
     return PDFImageViaCanvas;
