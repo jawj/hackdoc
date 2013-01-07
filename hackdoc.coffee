@@ -80,12 +80,9 @@ class @PDFJPEG extends PDFObj  # adapted from Prawn
     super pdf, opts
   
 
-class @PDFPNG extends PDFObj  # adapted from Prawn
-  
-  # tested with:
-  # 1-bit, 2-bit, 4-bit, 8-bit, 16-bit grayscale
-  # 8-bit, 16-bit RGB
-  # 1-bit, 2-bit, 4-bit, 8-bit paletted
+class @PDFPNG extends PDFObj 
+  # tested with: 
+  # 1-bit, 2-bit, 4-bit, 8-bit, 16-bit grayscale; 8-bit, 16-bit RGB; 1-bit, 2-bit, 4-bit, 8-bit paletted
   
   # some images aren't supported:
   # - if opts.tag exists, they're punted to PDFImageViaCanvas
@@ -94,7 +91,13 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
   # unsupported images are those with:
   # - Adam7 interlacing
   # - alpha transparency (even if opts.ignoreTransparency is set)
-  # - simple (tRNS) transparency and a paletted color type (unless opts.ignoreTransparency is set)
+  # - simple (tRNS) transparency, and paletted color type, and any color that's partially transparent
+  #   (unless opts.ignoreTransparency is true)
+  
+  # references:
+  # https://github.com/prawnpdf/prawn/blob/master/lib/prawn/images/png.rb
+  # http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html
+  # https://miktex.svn.sourceforge.net/svnroot/miktex/miktex/trunk/Programs/DviWare/xdvipdfmx/pngimage.c
   
   @header = '\x89PNG\r\n\x1a\n'
   @identify = (opts) ->
@@ -126,7 +129,7 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
         when 'IDAT'
           imageData.push r.subarray chunkSize
         when 'tRNS'
-          trns = new Uint8ArrayReader r.subarray chunkSize
+          trns = r.subarray chunkSize
         when 'IEND'
           break
         else 
@@ -145,7 +148,7 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
         return
     
     colors = switch colorType
-      when 0, 3 then 1  # 0 = grayscale, 3 = palette
+      when 0, 3 then 1  # 0 = grayscale, 3 = paletted
       when 2 then 3     # 2 = RGB
       else null
       
@@ -160,19 +163,30 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
     
     mask = ''
     if trns? and not opts.ignoreTransparency
-      if colorType is 0  # grayscale
-        greyVal = trns.uint16be()
-        mask = "\n/Mask [ #{greyVal} #{greyVal} ]"
-      else if colorType is 2  # RGB (NB. Chrome PDF viewer screws this up for 16-bit RGB)
-        rVal = trns.uint16be()
-        gVal = trns.uint16be()
-        bVal = trns.uint16be()
-        mask = "\n/Mask [ #{rVal} #{rVal} #{gVal} #{gVal} #{bVal} #{bVal} ]"
-      else if opts.tag?  # paletted tRNS isn't a binary mask, so can't be done this way
-        return new PDFImageViaCanvas pdf, opts
-      else 
-        @error = 'Simple transparency (tRNS chunk) unsupported for paletted PNG, and no <img> tag supplied for <canvas> strategy'
-        return
+      tr = new Uint8ArrayReader trns
+      switch colorType
+        when 0  # grayscale
+          greyVal = tr.uint16be()
+          mask = "\n/Mask [ #{greyVal} #{greyVal} ]"
+        when 2  # RGB (NB. Chrome PDF viewer screws this up for 16-bit RGB)
+          rVal = tr.uint16be()
+          gVal = tr.uint16be()
+          bVal = tr.uint16be()
+          mask = "\n/Mask [ #{rVal} #{rVal} #{gVal} #{gVal} #{bVal} #{bVal} ]"
+        else  # 3, paletted (we can manage this as long as everything is fully opaque or fully transparent)
+          mask = '\n/Mask ['
+          len = trns.length
+          for i in [0...len]
+            alpha = tr.uchar()
+            if alpha is 0x00
+              mask += " #{i} #{i}"
+            else if alpha isnt 0xff  # not 0 or ff => partial transparency, which can't be recreated with /Mask
+              if opts.tag?
+                return new PDFImageViaCanvas pdf, opts
+              else
+                @error = 'Partial transparency (in tRNS chunk) unsupported in paletted PNG, and no <img> tag supplied for <canvas> strategy'
+                return
+          mask += ' ]'
     
     opts.parts = ["""
       <<

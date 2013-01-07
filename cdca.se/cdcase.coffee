@@ -1,5 +1,5 @@
 
-# TODO: can this work in Safari?
+# TODO: can this work in Safari (and Opera) -- maybe using base64, with size limit?
 # TODO: k-means bg colour
 # TODO: UI!
 

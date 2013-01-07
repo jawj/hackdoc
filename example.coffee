@@ -2,6 +2,7 @@
 # TODO
 # - load a JPEG, a GIF, and _all_ PNG test suite images in same doc
 # - make it less random and horrible!
+# - use PDF 1.5 (to make SMask use compliant)
 
 loadAssets = ->
   xhr url: 'pdf/kernligimg.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: req.response

@@ -142,7 +142,7 @@
     };
 
     function PDFPNG(pdf, opts) {
-      var bVal, bits, chunkSize, colorSpace, colorType, colors, compressionMethod, filterMethod, gVal, greyVal, imageData, interlaceMethod, mask, palette, paletteObj, png, r, rVal, section, trns;
+      var alpha, bVal, bits, chunkSize, colorSpace, colorType, colors, compressionMethod, filterMethod, gVal, greyVal, i, imageData, interlaceMethod, len, mask, palette, paletteObj, png, r, rVal, section, tr, trns, _i;
       png = new Uint8Array(opts.arrBuf);
       r = new Uint8ArrayReader(png);
       r.skip(PDFPNG.header.length);
@@ -169,7 +169,7 @@
             imageData.push(r.subarray(chunkSize));
             break;
           case 'tRNS':
-            trns = new Uint8ArrayReader(r.subarray(chunkSize));
+            trns = r.subarray(chunkSize);
             break;
           case 'IEND':
             break;
@@ -226,19 +226,35 @@
       }
       mask = '';
       if ((trns != null) && !opts.ignoreTransparency) {
-        if (colorType === 0) {
-          greyVal = trns.uint16be();
-          mask = "\n/Mask [ " + greyVal + " " + greyVal + " ]";
-        } else if (colorType === 2) {
-          rVal = trns.uint16be();
-          gVal = trns.uint16be();
-          bVal = trns.uint16be();
-          mask = "\n/Mask [ " + rVal + " " + rVal + " " + gVal + " " + gVal + " " + bVal + " " + bVal + " ]";
-        } else if (opts.tag != null) {
-          return new PDFImageViaCanvas(pdf, opts);
-        } else {
-          this.error = 'Simple transparency (tRNS chunk) unsupported for paletted PNG, and no <img> tag supplied for <canvas> strategy';
-          return;
+        tr = new Uint8ArrayReader(trns);
+        switch (colorType) {
+          case 0:
+            greyVal = tr.uint16be();
+            mask = "\n/Mask [ " + greyVal + " " + greyVal + " ]";
+            break;
+          case 2:
+            rVal = tr.uint16be();
+            gVal = tr.uint16be();
+            bVal = tr.uint16be();
+            mask = "\n/Mask [ " + rVal + " " + rVal + " " + gVal + " " + gVal + " " + bVal + " " + bVal + " ]";
+            break;
+          default:
+            mask = '\n/Mask [';
+            len = trns.length;
+            for (i = _i = 0; 0 <= len ? _i < len : _i > len; i = 0 <= len ? ++_i : --_i) {
+              alpha = tr.uchar();
+              if (alpha === 0x00) {
+                mask += " " + i + " " + i;
+              } else if (alpha !== 0xff) {
+                if (opts.tag != null) {
+                  return new PDFImageViaCanvas(pdf, opts);
+                } else {
+                  this.error = 'Partial transparency (in tRNS chunk) unsupported in paletted PNG, and no <img> tag supplied for <canvas> strategy';
+                  return;
+                }
+              }
+            }
+            mask += ' ]';
         }
       }
       opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + imageData.length + "\n/Filter /FlateDecode\n/DecodeParms <<\n  /Predictor 15\n  /Colors " + colors + "\n  /BitsPerComponent " + bits + "\n  /Columns " + this.width + "\n  >>" + mask + "\n>>\nstream\n"].concat(__slice.call(imageData), ["\nendstream"]);
