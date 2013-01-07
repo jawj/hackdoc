@@ -1,7 +1,8 @@
 
-# TODO: can this work in Safari (and Opera) -- maybe using base64, with size limit?
+# TODO: can this work in Safari (and Opera) -- using base64, with size limit?
 # TODO: k-means bg colour
 # TODO: UI!
+# TODO: concatenate, minify & inline all JS
 
 pageSizes = 
   a4:
