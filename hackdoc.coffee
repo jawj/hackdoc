@@ -24,6 +24,7 @@ class @PDFStream extends PDFObj
     else opts.stream
     opts.parts = ["<<\n/Length #{stream.length}\n>>\nstream\n", stream, "\nendstream"]
     super pdf, opts
+  
 
 class @PDFJPEG extends PDFObj  # adapted from Prawn
   @header = '\xff\xd8\xff'

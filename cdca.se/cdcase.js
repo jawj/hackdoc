@@ -81,7 +81,7 @@
   };
 
   pw = new ParallelWaiter(2, function(data) {
-    var albumName, artist, artistFlow, artistPara, backContent, blob, dur, durFlow, durMatch, durMaxWidth, durRe, fontBoldObj, fontObj, frontContent, height, i, imgObj, k, maxSpineWidth, maxTrackHeight, maxTrackWidth, mediaBox, mins, name, nameFlow, namePara, num, numAndDurSize, numFlow, numMatch, numMaxWidth, numRe, pdf, secs, spineCommands, spineSize, spineSpace, spineXHeightFactor, t, totalWidth, track, trackCommands, trackData, trackSize, trackSpacing, trackText, tracks, v, _i, _j, _k, _l, _len, _len1, _ref3;
+    var albumName, artist, artistFlow, artistPara, backContent, blob, dur, durFlow, durMatch, durMaxWidth, durRe, fileName, fontBoldObj, fontObj, frontContent, height, i, imgObj, k, maxSpineWidth, maxTrackHeight, maxTrackWidth, mediaBox, mins, name, nameFlow, namePara, num, numAndDurSize, numFlow, numMatch, numMaxWidth, numRe, pdf, secs, spineCommands, spineSize, spineSpace, spineXHeightFactor, t, totalWidth, track, trackCommands, trackData, trackSize, trackSpacing, trackText, tracks, v, _i, _j, _k, _l, _len, _len1, _ref3;
     pdf = new PDFAppend(data.pdf);
     data.img.ignoreTransparency = true;
     imgObj = new PDFImage(pdf, data.img);
@@ -220,6 +220,7 @@
       num: 24
     });
     blob = pdf.toBlob();
+    fileName = ("" + artist + " " + albumName).toLowerCase().replace(/\s+/g, '_').replace(/\W+/g, '') + '.pdf';
     return make({
       tag: 'a',
       href: (typeof URL !== "undefined" && URL !== null ? URL : webkitURL).createObjectURL(blob),
@@ -229,7 +230,7 @@
       }),
       onclick: function() {
         if (navigator.msSaveOrOpenBlob != null) {
-          navigator.msSaveOrOpenBlob(blob, "" + artist + " - " + albumName + ".pdf");
+          navigator.msSaveOrOpenBlob(blob, fileName);
           return false;
         }
       }
