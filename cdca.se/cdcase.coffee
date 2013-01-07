@@ -34,6 +34,7 @@ albumQuery = 'http://ws.audioscrobbler.com/2.0/?' +
 loadAssets = ->
   xhr url: 'template.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: req.response
   jsonp url: albumQuery, success: (albumData) ->
+    console.log albumData
     imgs = {}
     for img in albumData.album.image
       imgs[img.size] = img['#text']
@@ -50,7 +51,7 @@ pw = new ParallelWaiter 2, (data) ->
   data.img.ignoreTransparency = yes
   imgObj = new PDFImage pdf, data.img
   
-  {artist, name: albumName} = data.albumData.album
+  {artist, name: albumName, releasedate} = data.albumData.album
   # artist += ' ' + artist + ' ' + artist + ' ' + artist  # test long artist/album names
   # albumName += ' ' + albumName + ' ' + albumName + ' ' + albumName
   
@@ -64,6 +65,13 @@ pw = new ParallelWaiter 2, (data) ->
   trackText = tracks.join '\n'
   # trackText += '\n' + trackText + '\n' + trackText  # test long list
   
+  releaseStr = releasedate.match(/\b\w+ (19|20)\d\d\b/)?[0]
+  insideText = if releaseStr? then "Released: #{releaseStr}" else ''
+  
+  insideSize = 10
+  insideFlow = PDFText.preprocessPara insideText, font
+  insidePara = PDFText.flowPara insideFlow, insideSize, maxWidth: fix mm2pt 100
+  
   numRe = /^(\d+)\.\s+/
   durRe = /\s+\[(\d+:\d+)\]\s*$/
   trackData = for t, i in trackText.split '\n'
@@ -73,7 +81,6 @@ pw = new ParallelWaiter 2, (data) ->
     dur = durMatch?[1]
     name = t.replace(numRe, '').replace(durRe, '')
     {num, name, dur}  
-  
   
   # add reference to fonts as new objects
   fontObj     = new PDFFont pdf, name: font
@@ -106,6 +113,15 @@ pw = new ParallelWaiter 2, (data) ->
     0 1 -1 0 0 0 cm  % rotate 90deg a-cw
     /AlbumArt Do
     Q
+    
+    q  % release date
+    1 0 0 1 #{fix mm2pt 83} #{fix pageSizes.a4.h - mm2pt 248} cm  % scaleX 0 0 scaleY trnslX trnslY cm
+    0 1 -1 0 0 0 cm  % rotate 90deg a-cw
+    BT
+    /Fnt #{insideSize} Tf
+    #{insidePara.commands}
+    ET
+    Q
     """, minify: yes
   
   # replace page 1 object, adding a reference to our new content and fiddling with MediaBox in case of letter paper
@@ -117,13 +133,13 @@ pw = new ParallelWaiter 2, (data) ->
     >>
     """, num: 2
   
-  # replace page 1 resources object, adding references to our new fonts and images (and all ProcSets)
+  # replace page 1 resources object, adding references to our new font and images (and all ProcSets)
   new PDFObj pdf, data: """
     <<
     /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R /Cs2 9 0 R >>
     /Font <<
       /Tc3.0 11 0 R /Tc4.1 13 0 R /Tc2.0 10 0 R /TT5.1 15 0 R /Tc1.0 8 0 R /Tc6.0 16 0 R
-      /Fnt #{fontObj.ref} /FntBold #{fontBoldObj.ref}
+      /Fnt #{fontObj.ref}
       >>
     /XObject << /AlbumArt #{imgObj.ref} >>
     >>
@@ -187,6 +203,7 @@ pw = new ParallelWaiter 2, (data) ->
         0 #{fix -trackSpacing} Td\n
         """
       height += nameFlow.height + trackSpacing
+    
     break if height < maxTrackHeight
   
   # content stream for back insert

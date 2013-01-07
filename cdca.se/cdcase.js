@@ -53,6 +53,7 @@
       url: albumQuery,
       success: function(albumData) {
         var img, imgUrl, imgs, size, _i, _j, _len, _len1, _ref3, _ref4;
+        console.log(albumData);
         imgs = {};
         _ref3 = albumData.album.image;
         for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
@@ -81,11 +82,11 @@
   };
 
   pw = new ParallelWaiter(2, function(data) {
-    var albumName, artist, artistFlow, artistPara, backContent, blob, dur, durFlow, durMatch, durMaxWidth, durRe, fileName, fontBoldObj, fontObj, frontContent, height, i, imgObj, k, maxSpineWidth, maxTrackHeight, maxTrackWidth, mediaBox, mins, name, nameFlow, namePara, num, numAndDurSize, numFlow, numMatch, numMaxWidth, numRe, pdf, secs, spineCommands, spineSize, spineSpace, spineXHeightFactor, t, totalWidth, track, trackCommands, trackData, trackSize, trackSpacing, trackText, tracks, v, _i, _j, _k, _l, _len, _len1, _ref3;
+    var albumName, artist, artistFlow, artistPara, backContent, blob, dur, durFlow, durMatch, durMaxWidth, durRe, fileName, fontBoldObj, fontObj, frontContent, height, i, imgObj, insideFlow, insidePara, insideSize, insideText, k, maxSpineWidth, maxTrackHeight, maxTrackWidth, mediaBox, mins, name, nameFlow, namePara, num, numAndDurSize, numFlow, numMatch, numMaxWidth, numRe, pdf, releaseStr, releasedate, secs, spineCommands, spineSize, spineSpace, spineXHeightFactor, t, totalWidth, track, trackCommands, trackData, trackSize, trackSpacing, trackText, tracks, v, _i, _j, _k, _l, _len, _len1, _ref3, _ref4;
     pdf = new PDFAppend(data.pdf);
     data.img.ignoreTransparency = true;
     imgObj = new PDFImage(pdf, data.img);
-    _ref3 = data.albumData.album, artist = _ref3.artist, albumName = _ref3.name;
+    _ref3 = data.albumData.album, artist = _ref3.artist, albumName = _ref3.name, releasedate = _ref3.releasedate;
     tracks = (function() {
       var _i, _len, _ref4, _results;
       _ref4 = data.albumData.album.tracks.track;
@@ -102,14 +103,21 @@
       return _results;
     })();
     trackText = tracks.join('\n');
+    releaseStr = (_ref4 = releasedate.match(/\b\w+ (19|20)\d\d\b/)) != null ? _ref4[0] : void 0;
+    insideText = releaseStr != null ? "Released: " + releaseStr : '';
+    insideSize = 10;
+    insideFlow = PDFText.preprocessPara(insideText, font);
+    insidePara = PDFText.flowPara(insideFlow, insideSize, {
+      maxWidth: fix(mm2pt(100))
+    });
     numRe = /^(\d+)\.\s+/;
     durRe = /\s+\[(\d+:\d+)\]\s*$/;
     trackData = (function() {
-      var _i, _len, _ref4, _results;
-      _ref4 = trackText.split('\n');
+      var _i, _len, _ref5, _results;
+      _ref5 = trackText.split('\n');
       _results = [];
-      for (i = _i = 0, _len = _ref4.length; _i < _len; i = ++_i) {
-        t = _ref4[i];
+      for (i = _i = 0, _len = _ref5.length; _i < _len; i = ++_i) {
+        t = _ref5[i];
         numMatch = t.match(numRe);
         num = numMatch != null ? numMatch[1] : void 0;
         durMatch = t.match(durRe);
@@ -131,7 +139,7 @@
     });
     mediaBox = "[0 " + (pageSizes.a4.h - pageSize.h) + " " + pageSize.w + " " + pageSizes.a4.h + "]";
     frontContent = new PDFStream(pdf, {
-      stream: "q  % colour block\n" + (bgCol.join(' ')) + " rg  % fill colour\n" + (fix(mm2pt(75))) + " " + (fix(pageSizes.a4.h - mm2pt(255))) + " " + (fix(mm2pt(120))) + " " + (fix(mm2pt(120))) + " re f  % rect, fill\nQ\n\nq  % small album art\n" + (fix(mm2pt(60))) + " 0 0 " + (fix(mm2pt(60))) + " " + (fix(mm2pt(165))) + " " + (fix(pageSizes.a4.h - mm2pt(225))) + " cm  % scaleX 0 0 scaleY trnslX trnslY cm\n0 1 -1 0 0 0 cm  % rotate 90deg a-cw\n/AlbumArt Do\nQ\n\nq  % line around small album art\n0.25 w  " + (fgCol.join(' ')) + " RG  % line colour\n" + (fix(mm2pt(105))) + " " + (fix(pageSizes.a4.h - mm2pt(225))) + " " + (fix(mm2pt(60))) + " " + (fix(mm2pt(60))) + " re  S  % rect, stroke\nQ\n\nq  % big album art\n" + (fix(mm2pt(120))) + " 0 0 " + (fix(mm2pt(120))) + " " + (fix(mm2pt(195))) + " " + (fix(pageSizes.a4.h - mm2pt(135))) + " cm  % scaleX 0 0 scaleY trnslX trnslY cm\n0 1 -1 0 0 0 cm  % rotate 90deg a-cw\n/AlbumArt Do\nQ",
+      stream: "q  % colour block\n" + (bgCol.join(' ')) + " rg  % fill colour\n" + (fix(mm2pt(75))) + " " + (fix(pageSizes.a4.h - mm2pt(255))) + " " + (fix(mm2pt(120))) + " " + (fix(mm2pt(120))) + " re f  % rect, fill\nQ\n\nq  % small album art\n" + (fix(mm2pt(60))) + " 0 0 " + (fix(mm2pt(60))) + " " + (fix(mm2pt(165))) + " " + (fix(pageSizes.a4.h - mm2pt(225))) + " cm  % scaleX 0 0 scaleY trnslX trnslY cm\n0 1 -1 0 0 0 cm  % rotate 90deg a-cw\n/AlbumArt Do\nQ\n\nq  % line around small album art\n0.25 w  " + (fgCol.join(' ')) + " RG  % line colour\n" + (fix(mm2pt(105))) + " " + (fix(pageSizes.a4.h - mm2pt(225))) + " " + (fix(mm2pt(60))) + " " + (fix(mm2pt(60))) + " re  S  % rect, stroke\nQ\n\nq  % big album art\n" + (fix(mm2pt(120))) + " 0 0 " + (fix(mm2pt(120))) + " " + (fix(mm2pt(195))) + " " + (fix(pageSizes.a4.h - mm2pt(135))) + " cm  % scaleX 0 0 scaleY trnslX trnslY cm\n0 1 -1 0 0 0 cm  % rotate 90deg a-cw\n/AlbumArt Do\nQ\n\nq  % release date\n1 0 0 1 " + (fix(mm2pt(83))) + " " + (fix(pageSizes.a4.h - mm2pt(248))) + " cm  % scaleX 0 0 scaleY trnslX trnslY cm\n0 1 -1 0 0 0 cm  % rotate 90deg a-cw\nBT\n/Fnt " + insideSize + " Tf\n" + insidePara.commands + "\nET\nQ",
       minify: true
     });
     new PDFObj(pdf, {
@@ -139,7 +147,7 @@
       num: 2
     });
     new PDFObj(pdf, {
-      data: "<<\n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R /Cs2 9 0 R >>\n/Font <<\n  /Tc3.0 11 0 R /Tc4.1 13 0 R /Tc2.0 10 0 R /TT5.1 15 0 R /Tc1.0 8 0 R /Tc6.0 16 0 R\n  /Fnt " + fontObj.ref + " /FntBold " + fontBoldObj.ref + "\n  >>\n/XObject << /AlbumArt " + imgObj.ref + " >>\n>>",
+      data: "<<\n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R /Cs2 9 0 R >>\n/Font <<\n  /Tc3.0 11 0 R /Tc4.1 13 0 R /Tc2.0 10 0 R /TT5.1 15 0 R /Tc1.0 8 0 R /Tc6.0 16 0 R\n  /Fnt " + fontObj.ref + "\n  >>\n/XObject << /AlbumArt " + imgObj.ref + " >>\n>>",
       num: 6
     });
     artistPara = PDFText.preprocessPara(artist, font);
