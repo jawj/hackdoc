@@ -23,6 +23,22 @@ else
 fix = (n) -> n.toFixed(3).replace /\.?0+$/, ''
 mm2pt = (mm) -> mm / 25.4 * 72
 
+albumQuery = 'http://ws.audioscrobbler.com/2.0/?' + 
+  'api_key=2113885e020cefe1d72f95d8378d32c1&method=album.getinfo&format=json&callback=<cb>&' + 
+  location.search.substring 1
+
+loadAssets = ->
+  xhr url: 'template.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: req.response
+  jsonp url: albumQuery, success: (albumData) ->
+    imgs = {}
+    for img in albumData.album.image
+      imgs[img.size] = img['#text']
+    for size in w 'mega extralarge large medium small'
+      imgUrl = imgs[size]
+      break if imgUrl?
+    xhrImg url: imgUrl.replace(/^http:\//, 'http://mackerron.com'), success: (img) ->
+      pw.done {albumData, img}
+
 pw = new ParallelWaiter 2, (data) ->
 
   pdf = new PDFAppend data.pdf
@@ -211,21 +227,11 @@ pw = new ParallelWaiter 2, (data) ->
     >>
     """, num: 24
   
-  pdf.addReadyListener ->
-    make tag: 'a', href: (URL ? webkitURL).createObjectURL(pdf.toBlob()), text: 'PDF (Blob URL)', parent: get(tag: 'body')
+  blob = pdf.toBlob()
+  make tag: 'a', href: (URL ? webkitURL).createObjectURL(blob), text: 'PDF', parent: get(tag: 'body'), onclick: ->
+    if navigator.msSaveOrOpenBlob?
+      navigator.msSaveOrOpenBlob blob, "#{artist} - #{albumName}.pdf"
+      return no
 
-albumQuery = 'http://ws.audioscrobbler.com/2.0/?' + 
-  'api_key=2113885e020cefe1d72f95d8378d32c1&method=album.getinfo&format=json&callback=<cb>&' + 
-  location.search.substring 1
-
-xhr url: 'template.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: req.response
-jsonp url: albumQuery, success: (albumData) ->
-  imgs = {}
-  for img in albumData.album.image
-    imgs[img.size] = img['#text']
-  for size in w 'mega extralarge large medium small'
-    imgUrl = imgs[size]
-    break if imgUrl?
-  xhr url: imgUrl.replace(/^http:\//, 'http://mackerron.com'), type: 'arraybuffer', success: (req) ->
-    pw.done albumData: albumData, img: req.response
+loadAssets()
   

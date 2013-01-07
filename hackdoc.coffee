@@ -4,6 +4,14 @@
 # test PDFImageViaCanvas alpha transparency
 # support other PNG transparency types?
 
+@xhrImg = (opts) ->
+  xhr type: 'arraybuffer', url: opts.url, success: (req) ->
+    arrBuf = req.response
+    imgBlob = new Blob [new Uint8Array arrBuf]
+    imgUrl = (URL ? webkitURL).createObjectURL imgBlob
+    tag = make tag: 'img', src: imgUrl, onload: -> 
+      opts.success {arrBuf, tag}
+
 Uint8ArrayReader::lastIndexOf = (binStr) ->
   seq = for c in binStr.split ''
     0xff & c.charCodeAt 0
@@ -17,12 +25,10 @@ Uint8ArrayReader::lastIndexOf = (binStr) ->
   return -1
 
 class @PDFObj
-  constructor: (pdf, parts, opts = {}, refOnly = no) ->
-    #console.log pdf, opts, parts
+  constructor: (pdf, parts, opts = {}) ->
     parts = [parts] unless parts.constructor is Array
-    @objNum ?= opts.num ? pdf.nextObjNum()
-    @ref ?= "#{@objNum} 0 R"
-    return if refOnly
+    @objNum = opts.num ? pdf.nextObjNum()
+    @ref = "#{@objNum} 0 R"
     @parts = ["\n#{@objNum} 0 obj\n", parts..., "\nendobj\n"]
     @length = 0
     (@length += part.length) for part in @parts
@@ -132,7 +138,12 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
     @error = 'Unsupported filter in PNG' if filterMethod isnt 0            # ditto
     return if @error?
     
-    return new PDFImageViaCanvas pdf, pngArrBuf, opts if interlaceMethod isnt 0 or colorType in [4, 6]
+    if interlaceMethod isnt 0 or colorType in [4, 6]
+      if opts.tag?
+        return new PDFImageViaCanvas pdf, opts.tag, opts
+      else
+        @error = 'Unsupported interlacing and/or alpha channel in PNG, , and no <img> tag supplied for <canvas> strategy'
+        return
     
     colors = switch colorType
       when 0, 3 then 1  # 0 = grayscale, 3 = palette
@@ -168,71 +179,65 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
       stream\n""", imageData..., "\nendstream\n"], opts
   
 
-class PDFImageViaCanvas extends PDFObj
-  constructor: (pdf, imgArrBuf, opts = {}) ->
-    super pdf, '', opts, yes  # call super constructor with no content so that ref is available
-    pdf.taskStarted()
+class @PDFImageViaCanvas extends PDFObj
+  constructor: (pdf, loadedImgTag, opts = {}) ->
+    {@width, @height} = loadedImgTag
+    canvas = make tag: 'canvas', width: @width, height: @height
+    ctx = canvas.getContext '2d'
+    ctx.drawImage loadedImgTag, 0, 0
+    pixelArr = (ctx.getImageData 0, 0, @width, @height).data
+    rgbArr   = new Uint8Array @width * @height * 3
+    alphaArr = new Uint8Array @width * @height
+    rgbPos = alphaPos = 0
+    byteCount = pixelArr.length
+    opacityAlwaysFull = yes
+    for i in [0...byteCount] by 4
+      for j in [0...3]
+        rgbArr[rgbPos++] = pixelArr[i + j]
+      alpha = pixelArr[i + 3]
+      alphaArr[alphaPos++] = alpha
+      opacityAlwaysFull = no if alpha isnt 0xff
     
-    imgBlob = new Blob [new Uint8Array imgArrBuf]
-    imgUrl = (URL ? webkitURL).createObjectURL imgBlob
-    img = make tag: 'img', src: imgUrl
-    img.onload = =>
-      @width = img.width
-      @height = img.height
-      canvas = make tag: 'canvas', width: @width, height: @height
-      ctx = canvas.getContext '2d'
-      ctx.drawImage img, 0, 0
-      pixelArr = (ctx.getImageData 0, 0, @width, @height).data
-      rgbArr   = new Uint8Array @width * @height * 3
-      alphaArr = new Uint8Array @width * @height
-      rgbPos = alphaPos = 0
-      byteCount = pixelArr.length
-      opacityAlwaysFull = yes
-      for i in [0...byteCount] by 4
-        for j in [0...3]
-          rgbArr[rgbPos++] = pixelArr[i + j]
-        alpha = pixelArr[i + 3]
-        alphaArr[alphaPos++] = alpha
-        opacityAlwaysFull = no if alpha isnt 0xff
-      
-      smaskRef = ''
-      unless opacityAlwaysFull
-        smaskStream = new PDFObj pdf, ["""
-          <<
-          /Type /XObject
-          /Subtype /Image
-          /ColorSpace /DeviceGray
-          /BitsPerComponent 8
-          /Width #{@width}
-          /Height #{@height}
-          /Length #{alphaArr.length}
-          >>
-          stream\n""", alphaArr, "\nendstream\n"]
-        smaskRef = "\n/SMask #{smaskStream.ref}"
-      
-      # simulate calling super constructor, with real content this time
-      PDFObj.call @, pdf, ["""
+    smaskRef = ''
+    unless opacityAlwaysFull
+      smaskStream = new PDFObj pdf, ["""
         <<
         /Type /XObject
         /Subtype /Image
-        /ColorSpace /DeviceRGB
+        /ColorSpace /DeviceGray
         /BitsPerComponent 8
         /Width #{@width}
         /Height #{@height}
-        /Length #{rgbArr.length}#{smaskRef}
+        /Length #{alphaArr.length}
         >>
-        stream\n""", rgbArr, "\nendstream\n"], opts
-      
-      pdf.taskCompleted()
+        stream\n""", alphaArr, "\nendstream\n"]
+      smaskRef = "\n/SMask #{smaskStream.ref}"
+    
+    super pdf, ["""
+      <<
+      /Type /XObject
+      /Subtype /Image
+      /ColorSpace /DeviceRGB
+      /BitsPerComponent 8
+      /Width #{@width}
+      /Height #{@height}
+      /Length #{rgbArr.length}#{smaskRef}
+      >>
+      stream\n""", rgbArr, "\nendstream\n"], opts
+  
 
 class @PDFImage
-  constructor: (pdf, arrBuf, opts) ->
-    if PDFJPEG.identify arrBuf 
-      return new PDFJPEG pdf, arrBuf, opts
-    else if PDFPNG.identify arrBuf 
-      return new PDFPNG pdf, arrBuf, opts
-    else 
-      @error = 'No valid JPEG or PNG header in image'
+  constructor: (pdf, opts) ->
+    {arrBuf, tag} = opts
+    if arrBuf?
+      if PDFJPEG.identify arrBuf 
+        return new PDFJPEG pdf, arrBuf, opts
+      else if PDFPNG.identify arrBuf 
+        return new PDFPNG pdf, arrBuf, opts
+    else if tag?
+      return new PDFImageViaCanvas pdf, tag, opts
+    else
+      @error = 'No valid JPEG or PNG header in image, and no <img> tag supplied for <canvas> strategy'
   
 
 class @PDFFont extends PDFObj
@@ -406,9 +411,6 @@ class @PDFAppend
     (Math.floor(Math.random() * 15.99).toString(16) for i in [0..31]).join ''
   
   constructor: (basePDFArrBuf) ->
-    @awaitingTaskCount = 0
-    @readyListeners = []
-    
     @objs = []
     @basePDF = new Uint8Array basePDFArrBuf
     @baseLen = @basePDF.length
@@ -422,15 +424,6 @@ class @PDFAppend
     @info = trailer.match(/\s+\/Info\s+(\d+ \d+ R)\s+/)[1]
     @id = trailer.match(/\s+\/ID\s+\[\s*<([0-9a-f]+)>\s+/i)[1]
     @baseStartXref = +trailer.match(/(\d+)\s+%%EOF\s+$/)[1]
-  
-  taskStarted: -> @awaitingTaskCount++
-  taskCompleted: -> 
-    if --@awaitingTaskCount is 0
-      func() for func in @readyListeners
-  
-  addReadyListener: (func) ->
-    if @awaitingTaskCount is 0 then func()
-    else @readyListeners.push func
   
   nextObjNum: -> @nextFreeObjNum++
   addObj: (obj) -> @objs.push obj
