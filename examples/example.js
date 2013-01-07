@@ -32,7 +32,7 @@
 
   pw = new ParallelWaiter(3, function(data) {
     var blob, contentStream, helvObj, jpegObj, pdf, pngObj, text1, text1full, text2, text2right, timesObj;
-    pdf = new PDFAppend(data.pdf);
+    pdf = new HackDoc(data.pdf);
     jpegObj = new PDFImage(pdf, data.jpeg);
     pngObj = new PDFImage(pdf, data.png);
     text1 = PDFText.preprocessPara('Affluent finance AWAY 6×6 £12 €13 – 15 x hello—again LOVE HATE YOU ME 123‰ Höhner 2πr. Lorem ipsum do-lor sit amet, consectetur adip-iscing elit. Ut eu ffffff nec nunf pellentesquelaoreeteuatnuncphasellusnonmagnai-arcu consequat tincidunt sit amet conv-allis eros. In pellen–tesque pellentesque felis, ac varius nulla vehicula id. Sed rut-rum, quam nec semper dapibus, mi lorem adipiscing lectus, vel bibendum lorem erat quis neque. pellentesquelaoreeteuatnuncphasellusnonmagnaidconesqyatys x', 'Times-Roman', false);

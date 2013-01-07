@@ -107,8 +107,8 @@ class @ParallelWaiter  # waits for parallel async jobs
 
 class @BinReader
   constructor: (@data) -> @offset = 0
-  skip: (n) -> @offset += n
-  seek: (n) -> @offset = n
+  skip: (n) -> @offset += n; @
+  seek: (n) -> @offset = n; @
   binString: (n = Infinity, str = '') ->
     end = Math.min n, @data.length - @offset
     for i in [0...end]

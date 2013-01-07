@@ -7,10 +7,11 @@
     tag = make tag: 'img', src: imgUrl, onload: -> opts.success {arrBuf, tag}
 
 class @PDFObj
-  constructor: (pdf, opts) ->
+  constructor: (pdf, opts = {}) ->
+    @objNum ?= opts.num ? pdf.nextObjNum()
+    @ref ?= "#{@objNum} 0 R"
+    return unless opts.parts? or opts.data?
     parts = opts.parts ? [opts.data]
-    @objNum = opts.num ? pdf.nextObjNum()
-    @ref = "#{@objNum} 0 R"
     @parts = ["\n#{@objNum} 0 obj\n", parts..., "\nendobj\n"]
     @length = 0
     (@length += part.length) for part in @parts
@@ -433,7 +434,7 @@ class @PDFText
     {commands, para, width, height}
   
 
-class @PDFAppend
+class @HackDoc
   @zeroPad = (n, len) ->
     zeroes = '0000000000'  # for len up to 10
     str = '' + n
@@ -442,27 +443,36 @@ class @PDFAppend
   @randomId = ->
     (Math.floor(Math.random() * 15.99).toString(16) for i in [0..31]).join ''
   
-  constructor: (basePDFArrBuf) ->
+  constructor: (basePDFArrBufOrVersion = '1.4') ->
     @objs = []
-    @basePDF = new Uint8Array basePDFArrBuf
-    @baseLen = @basePDF.length
-    
-    trailerPos = (pdf) ->
-      [t, r, a, i, l, e] = (char.charCodeAt(0) for char in 'traile'.split '')
-      pos = pdf.length
-      while (--pos >= 6)
-        return pos if pdf[pos] is r and pdf[pos - 1] is e and pdf[pos - 2] is l and 
-          pdf[pos - 3] is i and pdf[pos - 4] is a and pdf[pos - 5] is r and pdf[pos - 6] is t
-    
-    r = new Uint8ArrayReader @basePDF
-    r.seek trailerPos @basePDF
-    trailer = r.binString()
-    
-    @nextFreeObjNum = +trailer.match(/\s+\/Size\s+(\d+)\s+/)[1]
-    @root = trailer.match(/\s+\/Root\s+(\d+ \d+ R)\s+/)[1]
-    @info = trailer.match(/\s+\/Info\s+(\d+ \d+ R)\s+/)[1]
-    @id = trailer.match(/\s+\/ID\s+\[\s*<([0-9a-f]+)>\s+/i)[1]
-    @baseStartXref = +trailer.match(/(\d+)\s+%%EOF\s+$/)[1]
+    @id = HackDoc.randomId()
+    @appending = if typeof basePDFArrBufOrVersion is 'string'
+      @basePDF = new Blob ["%PDF-#{basePDFArrBufOrVersion}\n\u0080\u07ff\n"]  # these 2 unicode chars in utf8 -> 4 bytes >= 128
+      @baseLen = @basePDF.size
+      @nextFreeObjNum = 1
+      # @root must (and @info may) be set to obj refs manually
+      no
+      
+    else
+      @basePDF = new Uint8Array basePDFArrBufOrVersion
+      @baseLen = @basePDF.length
+      
+      trailerPos = (pdf) ->
+        [t, r, a, i, l, e] = (char.charCodeAt(0) for char in 'traile'.split '')
+        pos = pdf.length
+        while (--pos >= 6)
+          return pos if pdf[pos] is r and pdf[pos - 1] is e and pdf[pos - 2] is l and 
+            pdf[pos - 3] is i and pdf[pos - 4] is a and pdf[pos - 5] is r and pdf[pos - 6] is t
+      
+      r = new Uint8ArrayReader @basePDF
+      trailer = r.seek(trailerPos @basePDF).binString()
+      
+      @nextFreeObjNum = +trailer.match(/\s+\/Size\s+(\d+)\s+/)[1]
+      @root = trailer.match(/\s+\/Root\s+(\d+ \d+ R)\s+/)[1]
+      @info = trailer.match(/\s+\/Info\s+(\d+ \d+ R)\s+/)[1]
+      @prevId = trailer.match(/\s+\/ID\s+\[\s*<([0-9a-f]+)>\s+/i)[1]
+      @baseStartXref = +trailer.match(/(\d+)\s+%%EOF\s+$/)[1]
+      yes
   
   nextObjNum: -> @nextFreeObjNum++
   addObj: (obj) -> @objs.push obj
@@ -484,16 +494,24 @@ class @PDFAppend
     for os in consecutiveObjSets
       xref += "#{os[0].objNum} #{os.length}\n"
       for o in os
-        xref += "#{PDFAppend.zeroPad objOffset, 10} 00000 n \n"
+        xref += "#{HackDoc.zeroPad objOffset, 10} 00000 n \n"
         objOffset += o.length
+    
+    trailerPart = if @appending
+      """
+      /Prev #{@baseStartXref}"
+      /ID [<#{@prevId}> <#{@id}>]
+      """
+    else
+      "/ID [<#{@id}> <#{@id}>]"
+    
+    trailerPart += "\n/Info #{@info}" if @info
     
     trailer = """\ntrailer
       <<
+      #{trailerPart}
       /Root #{@root}
-      /Info #{@info}
-      /Prev #{@baseStartXref}
       /Size #{@nextFreeObjNum}
-      /ID [<#{@id}> <#{PDFAppend.randomId()}>]
       >>
       
       startxref

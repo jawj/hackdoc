@@ -53,7 +53,6 @@
       url: albumQuery,
       success: function(albumData) {
         var img, imgUrl, imgs, size, _i, _j, _len, _len1, _ref3, _ref4;
-        console.log(albumData);
         imgs = {};
         _ref3 = albumData.album.image;
         for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
@@ -83,7 +82,7 @@
 
   pw = new ParallelWaiter(2, function(data) {
     var albumName, artist, artistFlow, artistPara, backContent, blob, dur, durFlow, durMatch, durMaxWidth, durRe, fileName, fontBoldObj, fontObj, frontContent, height, i, imgObj, insideFlow, insidePara, insideSize, insideText, k, maxSpineWidth, maxTrackHeight, maxTrackWidth, mediaBox, mins, name, nameFlow, namePara, num, numAndDurSize, numFlow, numMatch, numMaxWidth, numRe, pdf, releaseStr, releasedate, secs, spineCommands, spineSize, spineSpace, spineXHeightFactor, t, totalWidth, track, trackCommands, trackData, trackSize, trackSpacing, trackText, tracks, v, _i, _j, _k, _l, _len, _len1, _ref3, _ref4;
-    pdf = new PDFAppend(data.pdf);
+    pdf = new HackDoc(data.pdf);
     data.img.ignoreTransparency = true;
     imgObj = new PDFImage(pdf, data.img);
     _ref3 = data.albumData.album, artist = _ref3.artist, albumName = _ref3.name, releasedate = _ref3.releasedate;

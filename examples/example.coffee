@@ -2,7 +2,7 @@
 # TODO
 # - load a JPEG, a GIF, and _all_ PNG test suite images in same doc
 # - make it less random and horrible!
-# - use PDF 1.5 (to make SMask use compliant)
+# - use PDF 1.5 template (to make SMask use compliant)?
 
 loadAssets = ->
   xhr url: 'pdf/kernligimg.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: req.response
@@ -10,7 +10,7 @@ loadAssets = ->
   xhrImg url: 'images/basn6a08.png',   success: (img) -> pw.done png:  img
 
 pw = new ParallelWaiter 3, (data) ->
-  pdf = new PDFAppend data.pdf
+  pdf = new HackDoc data.pdf
   jpegObj = new PDFImage pdf, data.jpeg
   pngObj  = new PDFImage pdf, data.png
   

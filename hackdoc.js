@@ -31,15 +31,25 @@
   this.PDFObj = (function() {
 
     function PDFObj(pdf, opts) {
-      var part, parts, _i, _len, _ref, _ref1, _ref2;
-      parts = (_ref = opts.parts) != null ? _ref : [opts.data];
-      this.objNum = (_ref1 = opts.num) != null ? _ref1 : pdf.nextObjNum();
-      this.ref = "" + this.objNum + " 0 R";
+      var part, parts, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4;
+      if (opts == null) {
+        opts = {};
+      }
+      if ((_ref = this.objNum) == null) {
+        this.objNum = (_ref1 = opts.num) != null ? _ref1 : pdf.nextObjNum();
+      }
+      if ((_ref2 = this.ref) == null) {
+        this.ref = "" + this.objNum + " 0 R";
+      }
+      if (!((opts.parts != null) || (opts.data != null))) {
+        return;
+      }
+      parts = (_ref3 = opts.parts) != null ? _ref3 : [opts.data];
       this.parts = ["\n" + this.objNum + " 0 obj\n"].concat(__slice.call(parts), ["\nendobj\n"]);
       this.length = 0;
-      _ref2 = this.parts;
-      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-        part = _ref2[_i];
+      _ref4 = this.parts;
+      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
+        part = _ref4[_i];
         this.length += part.length;
       }
       pdf.addObj(this);
@@ -591,16 +601,16 @@
 
   })();
 
-  this.PDFAppend = (function() {
+  this.HackDoc = (function() {
 
-    PDFAppend.zeroPad = function(n, len) {
+    HackDoc.zeroPad = function(n, len) {
       var str, zeroes;
       zeroes = '0000000000';
       str = '' + n;
       return zeroes.substring(0, len - str.length) + str;
     };
 
-    PDFAppend.randomId = function() {
+    HackDoc.randomId = function() {
       var i;
       return ((function() {
         var _i, _results;
@@ -612,12 +622,14 @@
       })()).join('');
     };
 
-    function PDFAppend(basePDFArrBuf) {
+    function HackDoc(basePDFArrBufOrVersion) {
       var r, trailer, trailerPos;
+      if (basePDFArrBufOrVersion == null) {
+        basePDFArrBufOrVersion = '1.4';
+      }
       this.objs = [];
-      this.basePDF = new Uint8Array(basePDFArrBuf);
-      this.baseLen = this.basePDF.length;
-      trailerPos = function(pdf) {
+      this.id = HackDoc.randomId();
+      this.appending = typeof basePDFArrBufOrVersion === 'string' ? (this.basePDF = new Blob(["%PDF-" + basePDFArrBufOrVersion + "\n\u0080\u07ff\n"]), this.baseLen = this.basePDF.size, this.nextFreeObjNum = 1, false) : (this.basePDF = new Uint8Array(basePDFArrBufOrVersion), this.baseLen = this.basePDF.length, trailerPos = function(pdf) {
         var a, char, e, i, l, pos, r, t, _ref;
         _ref = (function() {
           var _i, _len, _ref, _results;
@@ -635,27 +647,19 @@
             return pos;
           }
         }
-      };
-      r = new Uint8ArrayReader(this.basePDF);
-      r.seek(trailerPos(this.basePDF));
-      trailer = r.binString();
-      this.nextFreeObjNum = +trailer.match(/\s+\/Size\s+(\d+)\s+/)[1];
-      this.root = trailer.match(/\s+\/Root\s+(\d+ \d+ R)\s+/)[1];
-      this.info = trailer.match(/\s+\/Info\s+(\d+ \d+ R)\s+/)[1];
-      this.id = trailer.match(/\s+\/ID\s+\[\s*<([0-9a-f]+)>\s+/i)[1];
-      this.baseStartXref = +trailer.match(/(\d+)\s+%%EOF\s+$/)[1];
+      }, r = new Uint8ArrayReader(this.basePDF), trailer = r.seek(trailerPos(this.basePDF)).binString(), this.nextFreeObjNum = +trailer.match(/\s+\/Size\s+(\d+)\s+/)[1], this.root = trailer.match(/\s+\/Root\s+(\d+ \d+ R)\s+/)[1], this.info = trailer.match(/\s+\/Info\s+(\d+ \d+ R)\s+/)[1], this.prevId = trailer.match(/\s+\/ID\s+\[\s*<([0-9a-f]+)>\s+/i)[1], this.baseStartXref = +trailer.match(/(\d+)\s+%%EOF\s+$/)[1], true);
     }
 
-    PDFAppend.prototype.nextObjNum = function() {
+    HackDoc.prototype.nextObjNum = function() {
       return this.nextFreeObjNum++;
     };
 
-    PDFAppend.prototype.addObj = function(obj) {
+    HackDoc.prototype.addObj = function(obj) {
       return this.objs.push(obj);
     };
 
-    PDFAppend.prototype.toBlob = function() {
-      var bodyParts, consecutiveObjSets, currentSet, lastObjNum, o, objOffset, os, trailer, xref, _i, _j, _k, _len, _len1, _len2, _ref, _ref1;
+    HackDoc.prototype.toBlob = function() {
+      var bodyParts, consecutiveObjSets, currentSet, lastObjNum, o, objOffset, os, trailer, trailerPart, xref, _i, _j, _k, _len, _len1, _len2, _ref, _ref1;
       this.objs.sort(function(a, b) {
         return a.objNum - b.objNum;
       });
@@ -687,17 +691,21 @@
         xref += "" + os[0].objNum + " " + os.length + "\n";
         for (_k = 0, _len2 = os.length; _k < _len2; _k++) {
           o = os[_k];
-          xref += "" + (PDFAppend.zeroPad(objOffset, 10)) + " 00000 n \n";
+          xref += "" + (HackDoc.zeroPad(objOffset, 10)) + " 00000 n \n";
           objOffset += o.length;
         }
       }
-      trailer = "\ntrailer\n<<\n/Root " + this.root + "\n/Info " + this.info + "\n/Prev " + this.baseStartXref + "\n/Size " + this.nextFreeObjNum + "\n/ID [<" + this.id + "> <" + (PDFAppend.randomId()) + ">]\n>>\n\nstartxref\n" + objOffset + "\n%%EOF";
+      trailerPart = this.appending ? "/Prev " + this.baseStartXref + "\"\n/ID [<" + this.prevId + "> <" + this.id + ">]" : "/ID [<" + this.id + "> <" + this.id + ">]";
+      if (this.info) {
+        trailerPart += "\n/Info " + this.info;
+      }
+      trailer = "\ntrailer\n<<\n" + trailerPart + "\n/Root " + this.root + "\n/Size " + this.nextFreeObjNum + "\n>>\n\nstartxref\n" + objOffset + "\n%%EOF";
       return new Blob([this.basePDF].concat(__slice.call(bodyParts), [xref], [trailer]), {
         type: 'application/pdf'
       });
     };
 
-    return PDFAppend;
+    return HackDoc;
 
   })();
 

@@ -34,7 +34,6 @@ albumQuery = 'http://ws.audioscrobbler.com/2.0/?' +
 loadAssets = ->
   xhr url: 'template.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: req.response
   jsonp url: albumQuery, success: (albumData) ->
-    console.log albumData
     imgs = {}
     for img in albumData.album.image
       imgs[img.size] = img['#text']
@@ -46,7 +45,7 @@ loadAssets = ->
 
 pw = new ParallelWaiter 2, (data) ->
 
-  pdf = new PDFAppend data.pdf
+  pdf = new HackDoc data.pdf
   
   data.img.ignoreTransparency = yes
   imgObj = new PDFImage pdf, data.img

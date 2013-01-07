@@ -275,11 +275,13 @@
     }
 
     BinReader.prototype.skip = function(n) {
-      return this.offset += n;
+      this.offset += n;
+      return this;
     };
 
     BinReader.prototype.seek = function(n) {
-      return this.offset = n;
+      this.offset = n;
+      return this;
     };
 
     BinReader.prototype.binString = function(n, str) {
