@@ -1,4 +1,8 @@
 
+# TODO: can this work in Safari?
+# TODO: k-means bg colour
+# TODO: UI!
+
 pageSizes = 
   a4:
     w: 595
