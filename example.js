@@ -68,7 +68,7 @@
       name: 'Helvetica'
     });
     new PDFObj(pdf, {
-      data: "<< \n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R >> \n/Font <<\n  /TT1.0 8 0 R\n  /TR " + timesObj.ref + "\n  /H " + helvObj.ref + "\n>> \n/XObject <<\n  /Im1 9 0 R\n  /MyIm " + jpegObj.ref + "\n  /MyIm2 " + pngObj.ref + "\n>>\n>>",
+      data: "<< \n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R >> \n/Font <<\n  /TT1.0 8 0 R\n  /TR " + timesObj.ref + "\n  /H " + helvObj.ref + "\n  >> \n/XObject <<\n  /Im1 9 0 R\n  /MyIm " + jpegObj.ref + "\n  /MyIm2 " + pngObj.ref + "\n  >>\n>>",
       num: 6
     });
     blob = pdf.toBlob();

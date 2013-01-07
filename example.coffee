@@ -1,4 +1,8 @@
 
+# TODO
+# - load a JPEG, a GIF, and _all_ PNG test suite images in same doc
+# - make it less random and horrible!
+
 loadAssets = ->
   xhr url: 'pdf/kernligimg.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: req.response
   xhrImg url: 'images/pound-coin.jpg', success: (img) -> pw.done jpeg: img
@@ -71,12 +75,12 @@ pw = new ParallelWaiter 3, (data) ->
       /TT1.0 8 0 R
       /TR #{timesObj.ref}
       /H #{helvObj.ref}
-    >> 
+      >> 
     /XObject <<
       /Im1 9 0 R
       /MyIm #{jpegObj.ref}
       /MyIm2 #{pngObj.ref}
-    >>
+      >>
     >>
     """, num: 6
   

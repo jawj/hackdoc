@@ -42,6 +42,8 @@ loadAssets = ->
 pw = new ParallelWaiter 2, (data) ->
 
   pdf = new PDFAppend data.pdf
+  
+  data.img.ignoreTransparency = yes
   imgObj = new PDFImage pdf, data.img
   
   {artist, name: albumName} = data.albumData.album
@@ -118,7 +120,7 @@ pw = new ParallelWaiter 2, (data) ->
     /Font <<
       /Tc3.0 11 0 R /Tc4.1 13 0 R /Tc2.0 10 0 R /TT5.1 15 0 R /Tc1.0 8 0 R /Tc6.0 16 0 R
       /Fnt #{fontObj.ref} /FntBold #{fontBoldObj.ref}
-    >>
+      >>
     /XObject << /AlbumArt #{imgObj.ref} >>
     >>
     """, num: 6
@@ -223,7 +225,7 @@ pw = new ParallelWaiter 2, (data) ->
     /Font <<
       /Tc10.0 29 0 R /TT8.1 27 0 R /Tc7.0 25 0 R /Tc9.0 28 0 R
       /Fnt #{fontObj.ref} /FntBold #{fontBoldObj.ref}
-    >>
+      >>
     >>
     """, num: 24
   

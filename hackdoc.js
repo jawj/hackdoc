@@ -142,11 +142,12 @@
     };
 
     function PDFPNG(pdf, opts) {
-      var bits, chunkSize, colorSpace, colorType, colors, compressionMethod, filterMethod, imageData, interlaceMethod, palette, paletteObj, png, r, section;
+      var bVal, bits, chunkSize, colorSpace, colorType, colors, compressionMethod, filterMethod, gVal, greyVal, imageData, interlaceMethod, mask, palette, paletteObj, png, r, rVal, section, trns;
       png = new Uint8Array(opts.arrBuf);
       r = new Uint8ArrayReader(png);
       r.skip(PDFPNG.header.length);
       imageData = [];
+      trns = null;
       while (!r.eof()) {
         chunkSize = r.uint32be();
         section = r.binString(4);
@@ -166,6 +167,9 @@
             break;
           case 'IDAT':
             imageData.push(r.subarray(chunkSize));
+            break;
+          case 'tRNS':
+            trns = new Uint8ArrayReader(r.subarray(chunkSize));
             break;
           case 'IEND':
             break;
@@ -220,7 +224,24 @@
       if (this.error != null) {
         return;
       }
-      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + imageData.length + "\n/Filter /FlateDecode\n/DecodeParms <<\n  /Predictor 15\n  /Colors " + colors + "\n  /BitsPerComponent " + bits + "\n  /Columns " + this.width + "\n  >>\n>>\nstream\n"].concat(__slice.call(imageData), ["\nendstream"]);
+      mask = '';
+      if ((trns != null) && !opts.ignoreTransparency) {
+        if (colorType === 0) {
+          greyVal = trns.uint16be();
+          mask = "\n/Mask [ " + greyVal + " " + greyVal + " ]";
+        } else if (colorType === 2) {
+          rVal = trns.uint16be();
+          gVal = trns.uint16be();
+          bVal = trns.uint16be();
+          mask = "\n/Mask [ " + rVal + " " + rVal + " " + gVal + " " + gVal + " " + bVal + " " + bVal + " ]";
+        } else if (opts.tag != null) {
+          return new PDFImageViaCanvas(pdf, opts);
+        } else {
+          this.error = 'Simple transparency (tRNS chunk) unsupported for paletted PNG, and no <img> tag supplied for <canvas> strategy';
+          return;
+        }
+      }
+      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + imageData.length + "\n/Filter /FlateDecode\n/DecodeParms <<\n  /Predictor 15\n  /Colors " + colors + "\n  /BitsPerComponent " + bits + "\n  /Columns " + this.width + "\n  >>" + mask + "\n>>\nstream\n"].concat(__slice.call(imageData), ["\nendstream"]);
       PDFPNG.__super__.constructor.call(this, pdf, opts);
     }
 
@@ -233,7 +254,7 @@
     __extends(PDFImageViaCanvas, _super);
 
     function PDFImageViaCanvas(pdf, opts) {
-      var alpha, alphaArr, alphaPos, alphaTrans, byteCount, canvas, ctx, i, j, pixelArr, rgbArr, rgbPos, smaskRef, smaskStream, _i, _j, _ref;
+      var alpha, alphaArr, alphaPos, alphaTrans, byteCount, canvas, ctx, i, pixelArr, rgbArr, rgbPos, smaskRef, smaskStream, _i, _ref;
       if (opts == null) {
         opts = {};
       }
@@ -252,15 +273,15 @@
       byteCount = pixelArr.length;
       alphaTrans = false;
       for (i = _i = 0; _i < byteCount; i = _i += 4) {
-        for (j = _j = 0; _j < 3; j = ++_j) {
-          rgbArr[rgbPos++] = pixelArr[i + j];
-        }
+        rgbArr[rgbPos++] = pixelArr[i];
+        rgbArr[rgbPos++] = pixelArr[i + 1];
+        rgbArr[rgbPos++] = pixelArr[i + 2];
         alpha = pixelArr[i + 3];
         alphaArr[alphaPos++] = alpha;
         alphaTrans || (alphaTrans = alpha !== 0xff);
       }
       smaskRef = '';
-      if (alphaTrans) {
+      if (alphaTrans && !opts.ignoreTransparency) {
         smaskStream = new PDFObj(pdf, {
           parts: ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceGray\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + alphaArr.length + "\n>>\nstream\n", alphaArr, "\nendstream"]
         });

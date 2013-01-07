@@ -83,6 +83,7 @@
   pw = new ParallelWaiter(2, function(data) {
     var albumName, artist, artistFlow, artistPara, backContent, blob, dur, durFlow, durMatch, durMaxWidth, durRe, fontBoldObj, fontObj, frontContent, height, i, imgObj, k, maxSpineWidth, maxTrackHeight, maxTrackWidth, mediaBox, mins, name, nameFlow, namePara, num, numAndDurSize, numFlow, numMatch, numMaxWidth, numRe, pdf, secs, spineCommands, spineSize, spineSpace, spineXHeightFactor, t, totalWidth, track, trackCommands, trackData, trackSize, trackSpacing, trackText, tracks, v, _i, _j, _k, _l, _len, _len1, _ref3;
     pdf = new PDFAppend(data.pdf);
+    data.img.ignoreTransparency = true;
     imgObj = new PDFImage(pdf, data.img);
     _ref3 = data.albumData.album, artist = _ref3.artist, albumName = _ref3.name;
     tracks = (function() {
@@ -138,7 +139,7 @@
       num: 2
     });
     new PDFObj(pdf, {
-      data: "<<\n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R /Cs2 9 0 R >>\n/Font <<\n  /Tc3.0 11 0 R /Tc4.1 13 0 R /Tc2.0 10 0 R /TT5.1 15 0 R /Tc1.0 8 0 R /Tc6.0 16 0 R\n  /Fnt " + fontObj.ref + " /FntBold " + fontBoldObj.ref + "\n>>\n/XObject << /AlbumArt " + imgObj.ref + " >>\n>>",
+      data: "<<\n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R /Cs2 9 0 R >>\n/Font <<\n  /Tc3.0 11 0 R /Tc4.1 13 0 R /Tc2.0 10 0 R /TT5.1 15 0 R /Tc1.0 8 0 R /Tc6.0 16 0 R\n  /Fnt " + fontObj.ref + " /FntBold " + fontBoldObj.ref + "\n  >>\n/XObject << /AlbumArt " + imgObj.ref + " >>\n>>",
       num: 6
     });
     artistPara = PDFText.preprocessPara(artist, font);
@@ -215,7 +216,7 @@
       num: 21
     });
     new PDFObj(pdf, {
-      data: "<<\n/ProcSet [ /PDF /Text ] /ColorSpace << /Cs2 9 0 R /Cs1 7 0 R >>\n/Font <<\n  /Tc10.0 29 0 R /TT8.1 27 0 R /Tc7.0 25 0 R /Tc9.0 28 0 R\n  /Fnt " + fontObj.ref + " /FntBold " + fontBoldObj.ref + "\n>>\n>>",
+      data: "<<\n/ProcSet [ /PDF /Text ] /ColorSpace << /Cs2 9 0 R /Cs1 7 0 R >>\n/Font <<\n  /Tc10.0 29 0 R /TT8.1 27 0 R /Tc7.0 25 0 R /Tc9.0 28 0 R\n  /Fnt " + fontObj.ref + " /FntBold " + fontBoldObj.ref + "\n  >>\n>>",
       num: 24
     });
     blob = pdf.toBlob();
