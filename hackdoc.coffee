@@ -20,7 +20,7 @@ class @PDFObj
 
 class @PDFStream extends PDFObj
   constructor: (pdf, opts = {}) ->
-    stream = if opts.minify
+    stream = if opts.minify  # minifying removes comments and blank lines
       opts.stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n')
     else opts.stream
     opts.parts = ["<<\n/Length #{stream.length}\n>>\nstream\n", stream, "\nendstream"]
