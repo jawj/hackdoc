@@ -45,22 +45,30 @@
       maxWidth: 420,
       align: 'right'
     });
-    contentStream = new PDFStream(pdf, "q  0.7 0.7 0.7 RG  72 " + (600 + 12) + " 250 " + (-text1full.height) + " re S  Q\nBT\n  72 600 Td\n  /TR 12 Tf\n  " + text1full.commands + "\nET\nq  1 0.5 0 RG  " + (72 + 420 - text2right.width) + " " + (350 + 14) + " " + text2right.width + " " + (-text2right.height) + " re S  Q\nBT\n  72 350 Td\n  /TR 14 Tf\n  " + text2right.commands + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
-      maxWidth: 420,
-      align: 'left'
-    }).commands) + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
-      maxWidth: 420,
-      align: 'full'
-    }).commands) + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
-      maxWidth: 420,
-      align: 'centre'
-    }).commands) + "\nET\nq\n  72 0 0 72 400 400 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm Do\nQ\nq\n  0.5 0.5 0.5 rg\n  380 620 112 32 re  f\n  72 0 0 72 400 600 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm2 Do\nQ");
-    new PDFObj(pdf, "<< \n/Type /Page \n/Parent 3 0 R\n/Resources 6 0 R\n/Contents [4 0 R " + contentStream.ref + "]\n/MediaBox [0 0 595 842]\n>>", {
+    contentStream = new PDFStream(pdf, {
+      stream: "q  0.7 0.7 0.7 RG  72 " + (600 + 12) + " 250 " + (-text1full.height) + " re S  Q\nBT\n  72 600 Td\n  /TR 12 Tf\n  " + text1full.commands + "\nET\nq  1 0.5 0 RG  " + (72 + 420 - text2right.width) + " " + (350 + 14) + " " + text2right.width + " " + (-text2right.height) + " re S  Q\nBT\n  72 350 Td\n  /TR 14 Tf\n  " + text2right.commands + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
+        maxWidth: 420,
+        align: 'left'
+      }).commands) + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
+        maxWidth: 420,
+        align: 'full'
+      }).commands) + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
+        maxWidth: 420,
+        align: 'centre'
+      }).commands) + "\nET\nq\n  72 0 0 72 400 400 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm Do\nQ\nq\n  0.5 0.5 0.5 rg\n  380 620 112 32 re  f\n  72 0 0 72 400 600 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm2 Do\nQ"
+    });
+    new PDFObj(pdf, {
+      data: "<< \n/Type /Page \n/Parent 3 0 R\n/Resources 6 0 R\n/Contents [4 0 R " + contentStream.ref + "]\n/MediaBox [0 0 595 842]\n>>",
       num: 2
     });
-    timesObj = new PDFFont(pdf, 'Times-Roman');
-    helvObj = new PDFFont(pdf, 'Helvetica');
-    new PDFObj(pdf, "<< \n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R >> \n/Font <<\n  /TT1.0 8 0 R\n  /TR " + timesObj.ref + "\n  /H " + helvObj.ref + "\n>> \n/XObject <<\n  /Im1 9 0 R\n  /MyIm " + jpegObj.ref + "\n  /MyIm2 " + pngObj.ref + "\n>>\n>>", {
+    timesObj = new PDFFont(pdf, {
+      name: 'Times-Roman'
+    });
+    helvObj = new PDFFont(pdf, {
+      name: 'Helvetica'
+    });
+    new PDFObj(pdf, {
+      data: "<< \n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R >> \n/Font <<\n  /TT1.0 8 0 R\n  /TR " + timesObj.ref + "\n  /H " + helvObj.ref + "\n>> \n/XObject <<\n  /Im1 9 0 R\n  /MyIm " + jpegObj.ref + "\n  /MyIm2 " + pngObj.ref + "\n>>\n>>",
       num: 6
     });
     blob = pdf.toBlob();

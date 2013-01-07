@@ -17,7 +17,7 @@ pw = new ParallelWaiter 3, (data) ->
   text2right = PDFText.flowPara text2, 14, maxWidth: 420, align: 'right'
   
   # add a new object -- an extra content stream
-  contentStream = new PDFStream pdf, """
+  contentStream = new PDFStream pdf, stream: """
     q  0.7 0.7 0.7 RG  72 #{600 + 12} 250 #{- text1full.height} re S  Q
     BT
       72 600 Td
@@ -49,7 +49,7 @@ pw = new ParallelWaiter 3, (data) ->
     """
   
   # replace page object, with one change: adding a reference to our new content
-  new PDFObj pdf, """
+  new PDFObj pdf, data: """
     << 
     /Type /Page 
     /Parent 3 0 R
@@ -60,11 +60,11 @@ pw = new ParallelWaiter 3, (data) ->
     """, num: 2
   
   # add references to Helvetica and Times as new objects
-  timesObj = new PDFFont pdf, 'Times-Roman'
-  helvObj  = new PDFFont pdf, 'Helvetica'
+  timesObj = new PDFFont pdf, name: 'Times-Roman'
+  helvObj  = new PDFFont pdf, name: 'Helvetica'
   
   # replace page resources object, adding references to our new fonts and images
-  new PDFObj pdf, """
+  new PDFObj pdf, data: """
     << 
     /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R >> 
     /Font <<

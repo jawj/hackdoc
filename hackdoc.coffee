@@ -1,7 +1,6 @@
 
 # TODO
 # support tRNS in PNG
-# switch all PDFObj subclasses to opts-only args
 
 @xhrImg = (opts) ->
   xhr type: 'arraybuffer', url: opts.url, success: (req) ->
@@ -11,8 +10,8 @@
     tag = make tag: 'img', src: imgUrl, onload: -> opts.success {arrBuf, tag}
 
 class @PDFObj
-  constructor: (pdf, parts, opts = {}) ->
-    parts = [parts] unless parts.constructor is Array
+  constructor: (pdf, opts) ->
+    parts = opts.parts ? [opts.data]
     @objNum = opts.num ? pdf.nextObjNum()
     @ref = "#{@objNum} 0 R"
     @parts = ["\n#{@objNum} 0 obj\n", parts..., "\nendobj\n"]
@@ -22,19 +21,22 @@ class @PDFObj
   
 
 class @PDFStream extends PDFObj
-  constructor: (pdf, stream, opts = {}) ->
-    stream = stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n') if opts.minify?
-    super pdf, ["<<\n/Length #{stream.length}\n>>\nstream\n", stream, "\nendstream"], opts
+  constructor: (pdf, opts = {}) ->
+    stream = if opts.minify
+      opts.stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n')
+    else opts.stream
+    opts.parts = ["<<\n/Length #{stream.length}\n>>\nstream\n", stream, "\nendstream"]
+    super pdf, opts
 
 class @PDFJPEG extends PDFObj  # adapted from Prawn
   @header = '\xff\xd8\xff'
   @sofBlocks = [0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]
-  @identify = (arrBuf) ->
-    r = new Uint8ArrayReader new Uint8Array arrBuf
+  @identify = (opts) ->
+    r = new Uint8ArrayReader new Uint8Array opts.arrBuf
     r.binString(PDFJPEG.header.length) is PDFJPEG.header
   
-  constructor: (pdf, jpegArrBuf, opts) ->
-    jpeg = new Uint8Array jpegArrBuf
+  constructor: (pdf, opts) ->
+    jpeg = new Uint8Array opts.arrBuf
     r = new Uint8ArrayReader jpeg
     r.skip PDFJPEG.header.length + 1
     segmentLength = r.uint16be()
@@ -59,12 +61,12 @@ class @PDFJPEG extends PDFObj  # adapted from Prawn
       when 1 then '/DeviceGray'
       when 3 then '/DeviceRGB'
       when 4
-        decodeParam = '\n/Decode [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]'  # really?
+        decodeParam = '\n/Decode [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]'  # from Prawn -- why?
         '/DeviceCMYK'
       else @error = 'Unsupported number of channels in JPEG'
     return if @error?
     
-    super pdf, ["""
+    opts.parts = ["""
       <<
       /Type /XObject
       /Subtype /Image
@@ -75,7 +77,9 @@ class @PDFJPEG extends PDFObj  # adapted from Prawn
       /Height #{@height}
       /Length #{jpeg.length}#{decodeParam}
       >>
-      stream\n""", jpeg, "\nendstream"], opts
+      stream\n""", jpeg, "\nendstream"]
+    
+    super pdf, opts
   
 
 class @PDFPNG extends PDFObj  # adapted from Prawn
@@ -87,12 +91,12 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
   # not honoured: tRNS-block palette/index transparency
   
   @header = '\x89PNG\r\n\x1a\n'
-  @identify = (arrBuf) ->
-    r = new Uint8ArrayReader new Uint8Array arrBuf
+  @identify = (opts) ->
+    r = new Uint8ArrayReader new Uint8Array opts.arrBuf
     r.binString(PDFPNG.header.length) is PDFPNG.header
     
-  constructor: (pdf, pngArrBuf, opts) ->
-    png = new Uint8Array pngArrBuf
+  constructor: (pdf, opts) ->
+    png = new Uint8Array opts.arrBuf
     r = new Uint8ArrayReader png
     r.skip PDFPNG.header.length
     
@@ -101,7 +105,7 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
       chunkSize = r.uint32be()
       section = r.binString 4
       switch section
-        when 'IHDR'  # see http://www.w3.org/TR/PNG-Chunks.html#C.IHDR
+        when 'IHDR'
           @width = r.uint32be()
           @height = r.uint32be()
           bits = r.uchar()
@@ -120,15 +124,15 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
           r.skip chunkSize
       r.skip 4  # chunk CRC
     
-    @error = 'Unsupported compression in PNG' if compressionMethod isnt 0  # only 0 is in PNG spec
-    @error = 'Unsupported filter in PNG' if filterMethod isnt 0            # ditto
+    @error = 'Unsupported compression in PNG' unless compressionMethod is 0  # only 0 is in PNG spec
+    @error = 'Unsupported filter in PNG' unless filterMethod is 0            # ditto
     return if @error?
     
     if interlaceMethod isnt 0 or colorType in [4, 6]
       if opts.tag?
-        return new PDFImageViaCanvas pdf, opts.tag, opts
+        return new PDFImageViaCanvas pdf, opts
       else
-        @error = 'Unsupported interlacing and/or alpha channel in PNG, , and no <img> tag supplied for <canvas> strategy'
+        @error = 'Unsupported interlacing and/or alpha channel in PNG, and no <img> tag supplied for <canvas> strategy'
         return
     
     colors = switch colorType
@@ -140,12 +144,12 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
       when 0 then '/DeviceGray'
       when 2 then '/DeviceRGB'
       when 3
-        paletteObj = new PDFStream pdf, palette
+        paletteObj = new PDFStream pdf, stream: palette
         "[/Indexed /DeviceRGB #{palette.length / 3 - 1} #{paletteObj.ref}]"
       else @error = 'Unsupported number of colours in PNG'
     return if @error?
     
-    super pdf, ["""
+    opts.parts = ["""
       <<
       /Type /XObject
       /Subtype /Image
@@ -162,15 +166,17 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
         /Columns #{@width}
         >>
       >>
-      stream\n""", imageData..., "\nendstream\n"], opts
+      stream\n""", imageData..., "\nendstream"]
+    
+    super pdf, opts
   
 
 class @PDFImageViaCanvas extends PDFObj
-  constructor: (pdf, loadedImgTag, opts = {}) ->
-    {@width, @height} = loadedImgTag
+  constructor: (pdf, opts = {}) ->
+    {@width, @height} = opts.tag
     canvas = make tag: 'canvas', width: @width, height: @height
     ctx = canvas.getContext '2d'
-    ctx.drawImage loadedImgTag, 0, 0
+    ctx.drawImage opts.tag, 0, 0
     pixelArr = (ctx.getImageData 0, 0, @width, @height).data
     rgbArr   = new Uint8Array @width * @height * 3
     alphaArr = new Uint8Array @width * @height
@@ -186,7 +192,7 @@ class @PDFImageViaCanvas extends PDFObj
     
     smaskRef = ''
     if alphaTrans
-      smaskStream = new PDFObj pdf, ["""
+      smaskStream = new PDFObj pdf, parts: ["""
         <<
         /Type /XObject
         /Subtype /Image
@@ -199,7 +205,7 @@ class @PDFImageViaCanvas extends PDFObj
         stream\n""", alphaArr, "\nendstream"]
       smaskRef = "\n/SMask #{smaskStream.ref}"
     
-    super pdf, ["""
+    opts.parts = ["""
       <<
       /Type /XObject
       /Subtype /Image
@@ -209,37 +215,37 @@ class @PDFImageViaCanvas extends PDFObj
       /Height #{@height}
       /Length #{rgbArr.length}#{smaskRef}
       >>
-      stream\n""", rgbArr, "\nendstream"], opts
+      stream\n""", rgbArr, "\nendstream"]
+    
+    super pdf, opts
   
 
 class @PDFImage
   constructor: (pdf, opts) ->
-    {arrBuf, tag} = opts
-    if arrBuf?
-      if PDFJPEG.identify arrBuf 
-        return new PDFJPEG pdf, arrBuf, opts
-      else if PDFPNG.identify arrBuf 
-        return new PDFPNG pdf, arrBuf, opts
-    else if tag?
-      return new PDFImageViaCanvas pdf, tag, opts
+    if opts.arrBuf? and PDFJPEG.identify opts 
+      return new PDFJPEG pdf, opts
+    else if opts.arrBuf? and PDFPNG.identify opts 
+      return new PDFPNG pdf, opts
+    else if opts.tag?
+      return new PDFImageViaCanvas pdf, opts
     else
       @error = 'No valid JPEG or PNG header in image, and no <img> tag supplied for <canvas> strategy'
   
 
 class @PDFFont extends PDFObj
-  constructor: (pdf, fontName, opts) ->
-    super pdf, ["""
+  constructor: (pdf, opts) ->
+    opts.data = """
       <<
       /Type /Font 
       /Subtype /Type1
-      /BaseFont /#{fontName}
+      /BaseFont /#{opts.name}
       /Encoding <<
         /Type /Encoding
         /BaseEncoding /MacRomanEncoding
         /Differences [219 /Euro]
         >>
-      >>
-      """], opts
+      >>"""
+    super pdf, opts
   
 
 class @PDFText

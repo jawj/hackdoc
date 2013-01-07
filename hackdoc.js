@@ -30,21 +30,16 @@
 
   this.PDFObj = (function() {
 
-    function PDFObj(pdf, parts, opts) {
-      var part, _i, _len, _ref, _ref1;
-      if (opts == null) {
-        opts = {};
-      }
-      if (parts.constructor !== Array) {
-        parts = [parts];
-      }
-      this.objNum = (_ref = opts.num) != null ? _ref : pdf.nextObjNum();
+    function PDFObj(pdf, opts) {
+      var part, parts, _i, _len, _ref, _ref1, _ref2;
+      parts = (_ref = opts.parts) != null ? _ref : [opts.data];
+      this.objNum = (_ref1 = opts.num) != null ? _ref1 : pdf.nextObjNum();
       this.ref = "" + this.objNum + " 0 R";
       this.parts = ["\n" + this.objNum + " 0 obj\n"].concat(__slice.call(parts), ["\nendobj\n"]);
       this.length = 0;
-      _ref1 = this.parts;
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        part = _ref1[_i];
+      _ref2 = this.parts;
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        part = _ref2[_i];
         this.length += part.length;
       }
       pdf.addObj(this);
@@ -58,14 +53,14 @@
 
     __extends(PDFStream, _super);
 
-    function PDFStream(pdf, stream, opts) {
+    function PDFStream(pdf, opts) {
+      var stream;
       if (opts == null) {
         opts = {};
       }
-      if (opts.minify != null) {
-        stream = stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n');
-      }
-      PDFStream.__super__.constructor.call(this, pdf, ["<<\n/Length " + stream.length + "\n>>\nstream\n", stream, "\nendstream"], opts);
+      stream = opts.minify ? opts.stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n') : opts.stream;
+      opts.parts = ["<<\n/Length " + stream.length + "\n>>\nstream\n", stream, "\nendstream"];
+      PDFStream.__super__.constructor.call(this, pdf, opts);
     }
 
     return PDFStream;
@@ -80,15 +75,15 @@
 
     PDFJPEG.sofBlocks = [0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf];
 
-    PDFJPEG.identify = function(arrBuf) {
+    PDFJPEG.identify = function(opts) {
       var r;
-      r = new Uint8ArrayReader(new Uint8Array(arrBuf));
+      r = new Uint8ArrayReader(new Uint8Array(opts.arrBuf));
       return r.binString(PDFJPEG.header.length) === PDFJPEG.header;
     };
 
-    function PDFJPEG(pdf, jpegArrBuf, opts) {
+    function PDFJPEG(pdf, opts) {
       var bits, channels, code, colorSpace, decodeParam, jpeg, length, r, segmentLength;
-      jpeg = new Uint8Array(jpegArrBuf);
+      jpeg = new Uint8Array(opts.arrBuf);
       r = new Uint8ArrayReader(jpeg);
       r.skip(PDFJPEG.header.length + 1);
       segmentLength = r.uint16be();
@@ -126,7 +121,8 @@
       if (this.error != null) {
         return;
       }
-      PDFJPEG.__super__.constructor.call(this, pdf, ["<<\n/Type /XObject\n/Subtype /Image\n/Filter /DCTDecode\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + jpeg.length + decodeParam + "\n>>\nstream\n", jpeg, "\nendstream"], opts);
+      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/Filter /DCTDecode\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + jpeg.length + decodeParam + "\n>>\nstream\n", jpeg, "\nendstream"];
+      PDFJPEG.__super__.constructor.call(this, pdf, opts);
     }
 
     return PDFJPEG;
@@ -139,15 +135,15 @@
 
     PDFPNG.header = '\x89PNG\r\n\x1a\n';
 
-    PDFPNG.identify = function(arrBuf) {
+    PDFPNG.identify = function(opts) {
       var r;
-      r = new Uint8ArrayReader(new Uint8Array(arrBuf));
+      r = new Uint8ArrayReader(new Uint8Array(opts.arrBuf));
       return r.binString(PDFPNG.header.length) === PDFPNG.header;
     };
 
-    function PDFPNG(pdf, pngArrBuf, opts) {
+    function PDFPNG(pdf, opts) {
       var bits, chunkSize, colorSpace, colorType, colors, compressionMethod, filterMethod, imageData, interlaceMethod, palette, paletteObj, png, r, section;
-      png = new Uint8Array(pngArrBuf);
+      png = new Uint8Array(opts.arrBuf);
       r = new Uint8ArrayReader(png);
       r.skip(PDFPNG.header.length);
       imageData = [];
@@ -189,9 +185,9 @@
       }
       if (interlaceMethod !== 0 || (colorType === 4 || colorType === 6)) {
         if (opts.tag != null) {
-          return new PDFImageViaCanvas(pdf, opts.tag, opts);
+          return new PDFImageViaCanvas(pdf, opts);
         } else {
-          this.error = 'Unsupported interlacing and/or alpha channel in PNG, , and no <img> tag supplied for <canvas> strategy';
+          this.error = 'Unsupported interlacing and/or alpha channel in PNG, and no <img> tag supplied for <canvas> strategy';
           return;
         }
       }
@@ -213,7 +209,9 @@
           case 2:
             return '/DeviceRGB';
           case 3:
-            paletteObj = new PDFStream(pdf, palette);
+            paletteObj = new PDFStream(pdf, {
+              stream: palette
+            });
             return "[/Indexed /DeviceRGB " + (palette.length / 3 - 1) + " " + paletteObj.ref + "]";
           default:
             return this.error = 'Unsupported number of colours in PNG';
@@ -222,7 +220,8 @@
       if (this.error != null) {
         return;
       }
-      PDFPNG.__super__.constructor.call(this, pdf, ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + imageData.length + "\n/Filter /FlateDecode\n/DecodeParms <<\n  /Predictor 15\n  /Colors " + colors + "\n  /BitsPerComponent " + bits + "\n  /Columns " + this.width + "\n  >>\n>>\nstream\n"].concat(__slice.call(imageData), ["\nendstream\n"]), opts);
+      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + imageData.length + "\n/Filter /FlateDecode\n/DecodeParms <<\n  /Predictor 15\n  /Colors " + colors + "\n  /BitsPerComponent " + bits + "\n  /Columns " + this.width + "\n  >>\n>>\nstream\n"].concat(__slice.call(imageData), ["\nendstream"]);
+      PDFPNG.__super__.constructor.call(this, pdf, opts);
     }
 
     return PDFPNG;
@@ -233,19 +232,19 @@
 
     __extends(PDFImageViaCanvas, _super);
 
-    function PDFImageViaCanvas(pdf, loadedImgTag, opts) {
-      var alpha, alphaArr, alphaPos, alphaTrans, byteCount, canvas, ctx, i, j, pixelArr, rgbArr, rgbPos, smaskRef, smaskStream, _i, _j;
+    function PDFImageViaCanvas(pdf, opts) {
+      var alpha, alphaArr, alphaPos, alphaTrans, byteCount, canvas, ctx, i, j, pixelArr, rgbArr, rgbPos, smaskRef, smaskStream, _i, _j, _ref;
       if (opts == null) {
         opts = {};
       }
-      this.width = loadedImgTag.width, this.height = loadedImgTag.height;
+      _ref = opts.tag, this.width = _ref.width, this.height = _ref.height;
       canvas = make({
         tag: 'canvas',
         width: this.width,
         height: this.height
       });
       ctx = canvas.getContext('2d');
-      ctx.drawImage(loadedImgTag, 0, 0);
+      ctx.drawImage(opts.tag, 0, 0);
       pixelArr = (ctx.getImageData(0, 0, this.width, this.height)).data;
       rgbArr = new Uint8Array(this.width * this.height * 3);
       alphaArr = new Uint8Array(this.width * this.height);
@@ -262,10 +261,13 @@
       }
       smaskRef = '';
       if (alphaTrans) {
-        smaskStream = new PDFObj(pdf, ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceGray\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + alphaArr.length + "\n>>\nstream\n", alphaArr, "\nendstream"]);
+        smaskStream = new PDFObj(pdf, {
+          parts: ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceGray\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + alphaArr.length + "\n>>\nstream\n", alphaArr, "\nendstream"]
+        });
         smaskRef = "\n/SMask " + smaskStream.ref;
       }
-      PDFImageViaCanvas.__super__.constructor.call(this, pdf, ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + rgbArr.length + smaskRef + "\n>>\nstream\n", rgbArr, "\nendstream"], opts);
+      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + rgbArr.length + smaskRef + "\n>>\nstream\n", rgbArr, "\nendstream"];
+      PDFImageViaCanvas.__super__.constructor.call(this, pdf, opts);
     }
 
     return PDFImageViaCanvas;
@@ -275,16 +277,12 @@
   this.PDFImage = (function() {
 
     function PDFImage(pdf, opts) {
-      var arrBuf, tag;
-      arrBuf = opts.arrBuf, tag = opts.tag;
-      if (arrBuf != null) {
-        if (PDFJPEG.identify(arrBuf)) {
-          return new PDFJPEG(pdf, arrBuf, opts);
-        } else if (PDFPNG.identify(arrBuf)) {
-          return new PDFPNG(pdf, arrBuf, opts);
-        }
-      } else if (tag != null) {
-        return new PDFImageViaCanvas(pdf, tag, opts);
+      if ((opts.arrBuf != null) && PDFJPEG.identify(opts)) {
+        return new PDFJPEG(pdf, opts);
+      } else if ((opts.arrBuf != null) && PDFPNG.identify(opts)) {
+        return new PDFPNG(pdf, opts);
+      } else if (opts.tag != null) {
+        return new PDFImageViaCanvas(pdf, opts);
       } else {
         this.error = 'No valid JPEG or PNG header in image, and no <img> tag supplied for <canvas> strategy';
       }
@@ -298,8 +296,9 @@
 
     __extends(PDFFont, _super);
 
-    function PDFFont(pdf, fontName, opts) {
-      PDFFont.__super__.constructor.call(this, pdf, ["<<\n/Type /Font \n/Subtype /Type1\n/BaseFont /" + fontName + "\n/Encoding <<\n  /Type /Encoding\n  /BaseEncoding /MacRomanEncoding\n  /Differences [219 /Euro]\n  >>\n>>"], opts);
+    function PDFFont(pdf, opts) {
+      opts.data = "<<\n/Type /Font \n/Subtype /Type1\n/BaseFont /" + opts.name + "\n/Encoding <<\n  /Type /Encoding\n  /BaseEncoding /MacRomanEncoding\n  /Differences [219 /Euro]\n  >>\n>>";
+      PDFFont.__super__.constructor.call(this, pdf, opts);
     }
 
     return PDFFont;
