@@ -1,6 +1,5 @@
 
 # TODO
-# search manually for 'trailer' instead of lastIndexOf
 # test PDFImageViaCanvas alpha transparency
 # support other PNG transparency types?
 
@@ -9,20 +8,7 @@
     arrBuf = req.response
     imgBlob = new Blob [new Uint8Array arrBuf]
     imgUrl = (URL ? webkitURL).createObjectURL imgBlob
-    tag = make tag: 'img', src: imgUrl, onload: -> 
-      opts.success {arrBuf, tag}
-
-Uint8ArrayReader::lastIndexOf = (binStr) ->
-  seq = for c in binStr.split ''
-    0xff & c.charCodeAt 0
-  seqEnd = seq.length - 1
-  dataEnd = @data.length - 1
-  for dataPos in [dataEnd..0]
-    for seqPos in [seqEnd..0]
-      dataCompPos = dataPos - (seqEnd - seqPos)
-      break unless @data[dataCompPos] is seq[seqPos]
-      return dataCompPos if seqPos is 0
-  return -1
+    tag = make tag: 'img', src: imgUrl, onload: -> opts.success {arrBuf, tag}
 
 class @PDFObj
   constructor: (pdf, parts, opts = {}) ->
@@ -96,8 +82,8 @@ class @PDFPNG extends PDFObj  # adapted from Prawn
   # works: 1-bit, 2-bit, 4-bit, 8-bit, 16-bit grayscale
   # works: 8-bit, 16-bit RGB
   # works: 1-bit, 2-bit, 4-bit, 8-bit paletted
-  # doesn't work: interlaced (error returned)
-  # doesn't work: alpha transparency (error returned)
+  # doesn't work: interlaced (delegated to PDFImageViaCanvas if tag given)
+  # doesn't work: alpha transparency (delegated to PDFImageViaCanvas if tag given)
   # not honoured: tRNS-block palette/index transparency
   
   @header = '\x89PNG\r\n\x1a\n'
@@ -190,16 +176,16 @@ class @PDFImageViaCanvas extends PDFObj
     alphaArr = new Uint8Array @width * @height
     rgbPos = alphaPos = 0
     byteCount = pixelArr.length
-    opacityAlwaysFull = yes
+    alphaTrans = no
     for i in [0...byteCount] by 4
       for j in [0...3]
         rgbArr[rgbPos++] = pixelArr[i + j]
       alpha = pixelArr[i + 3]
       alphaArr[alphaPos++] = alpha
-      opacityAlwaysFull = no if alpha isnt 0xff
+      alphaTrans ||= alpha isnt 0xff
     
     smaskRef = ''
-    unless opacityAlwaysFull
+    if alphaTrans
       smaskStream = new PDFObj pdf, ["""
         <<
         /Type /XObject
@@ -415,9 +401,16 @@ class @PDFAppend
     @basePDF = new Uint8Array basePDFArrBuf
     @baseLen = @basePDF.length
     
-    reader = new Uint8ArrayReader @basePDF
-    reader.seek reader.lastIndexOf 'trailer'
-    trailer = reader.binString()
+    trailerPos = (pdf) ->
+      [t, r, a, i, l, e] = (char.charCodeAt(0) for char in 'traile'.split '')
+      pos = pdf.length
+      while (--pos >= 6)
+        return pos if pdf[pos] is r and pdf[pos - 1] is e and pdf[pos - 2] is l and 
+          pdf[pos - 3] is i and pdf[pos - 4] is a and pdf[pos - 5] is r and pdf[pos - 6] is t
+    
+    r = new Uint8ArrayReader @basePDF
+    r.seek trailerPos @basePDF
+    trailer = r.binString()
     
     @nextFreeObjNum = +trailer.match(/\s+\/Size\s+(\d+)\s+/)[1]
     @root = trailer.match(/\s+\/Root\s+(\d+ \d+ R)\s+/)[1]

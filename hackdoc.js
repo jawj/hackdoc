@@ -28,34 +28,6 @@
     });
   };
 
-  Uint8ArrayReader.prototype.lastIndexOf = function(binStr) {
-    var c, dataCompPos, dataEnd, dataPos, seq, seqEnd, seqPos, _i, _j;
-    seq = (function() {
-      var _i, _len, _ref, _results;
-      _ref = binStr.split('');
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        c = _ref[_i];
-        _results.push(0xff & c.charCodeAt(0));
-      }
-      return _results;
-    })();
-    seqEnd = seq.length - 1;
-    dataEnd = this.data.length - 1;
-    for (dataPos = _i = dataEnd; dataEnd <= 0 ? _i <= 0 : _i >= 0; dataPos = dataEnd <= 0 ? ++_i : --_i) {
-      for (seqPos = _j = seqEnd; seqEnd <= 0 ? _j <= 0 : _j >= 0; seqPos = seqEnd <= 0 ? ++_j : --_j) {
-        dataCompPos = dataPos - (seqEnd - seqPos);
-        if (this.data[dataCompPos] !== seq[seqPos]) {
-          break;
-        }
-        if (seqPos === 0) {
-          return dataCompPos;
-        }
-      }
-    }
-    return -1;
-  };
-
   this.PDFObj = (function() {
 
     function PDFObj(pdf, parts, opts) {
@@ -262,7 +234,7 @@
     __extends(PDFImageViaCanvas, _super);
 
     function PDFImageViaCanvas(pdf, loadedImgTag, opts) {
-      var alpha, alphaArr, alphaPos, byteCount, canvas, ctx, i, j, opacityAlwaysFull, pixelArr, rgbArr, rgbPos, smaskRef, smaskStream, _i, _j;
+      var alpha, alphaArr, alphaPos, alphaTrans, byteCount, canvas, ctx, i, j, pixelArr, rgbArr, rgbPos, smaskRef, smaskStream, _i, _j;
       if (opts == null) {
         opts = {};
       }
@@ -279,19 +251,17 @@
       alphaArr = new Uint8Array(this.width * this.height);
       rgbPos = alphaPos = 0;
       byteCount = pixelArr.length;
-      opacityAlwaysFull = true;
+      alphaTrans = false;
       for (i = _i = 0; _i < byteCount; i = _i += 4) {
         for (j = _j = 0; _j < 3; j = ++_j) {
           rgbArr[rgbPos++] = pixelArr[i + j];
         }
         alpha = pixelArr[i + 3];
         alphaArr[alphaPos++] = alpha;
-        if (alpha !== 0xff) {
-          opacityAlwaysFull = false;
-        }
+        alphaTrans || (alphaTrans = alpha !== 0xff);
       }
       smaskRef = '';
-      if (!opacityAlwaysFull) {
+      if (alphaTrans) {
         smaskStream = new PDFObj(pdf, ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceGray\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + alphaArr.length + "\n>>\nstream\n", alphaArr, "\nendstream\n"]);
         smaskRef = "\n/SMask " + smaskStream.ref;
       }
@@ -607,13 +577,32 @@
     };
 
     function PDFAppend(basePDFArrBuf) {
-      var reader, trailer;
+      var r, trailer, trailerPos;
       this.objs = [];
       this.basePDF = new Uint8Array(basePDFArrBuf);
       this.baseLen = this.basePDF.length;
-      reader = new Uint8ArrayReader(this.basePDF);
-      reader.seek(reader.lastIndexOf('trailer'));
-      trailer = reader.binString();
+      trailerPos = function(pdf) {
+        var a, char, e, i, l, pos, r, t, _ref;
+        _ref = (function() {
+          var _i, _len, _ref, _results;
+          _ref = 'traile'.split('');
+          _results = [];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            char = _ref[_i];
+            _results.push(char.charCodeAt(0));
+          }
+          return _results;
+        })(), t = _ref[0], r = _ref[1], a = _ref[2], i = _ref[3], l = _ref[4], e = _ref[5];
+        pos = pdf.length;
+        while (--pos >= 6) {
+          if (pdf[pos] === r && pdf[pos - 1] === e && pdf[pos - 2] === l && pdf[pos - 3] === i && pdf[pos - 4] === a && pdf[pos - 5] === r && pdf[pos - 6] === t) {
+            return pos;
+          }
+        }
+      };
+      r = new Uint8ArrayReader(this.basePDF);
+      r.seek(trailerPos(this.basePDF));
+      trailer = r.binString();
       this.nextFreeObjNum = +trailer.match(/\s+\/Size\s+(\d+)\s+/)[1];
       this.root = trailer.match(/\s+\/Root\s+(\d+ \d+ R)\s+/)[1];
       this.info = trailer.match(/\s+\/Info\s+(\d+ \d+ R)\s+/)[1];
