@@ -1,4 +1,12 @@
 
+###
+HackDoc -- client-side PDF generation
+George MacKerron
+https://github.com/jawj/hackdoc
+###
+
+# PDF ref: http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf
+
 @xhrImg = (opts) ->
   tag = make tag: 'img', src: opts.url, onload: -> 
     xhr type: 'arraybuffer', url: opts.url, success: (req) ->  # should be from cache
