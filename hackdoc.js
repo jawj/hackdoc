@@ -6,16 +6,17 @@
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   this.xhrImg = function(opts) {
-    return xhr({
-      type: 'arraybuffer',
-      url: opts.url,
-      success: function(req) {
-        var arrBuf, tag;
-        arrBuf = req.response;
-        return tag = make({
-          tag: 'img',
-          src: opts.url,
-          onload: function() {
+    var tag;
+    return tag = make({
+      tag: 'img',
+      src: opts.url,
+      onload: function() {
+        return xhr({
+          type: 'arraybuffer',
+          url: opts.url,
+          success: function(req) {
+            var arrBuf;
+            arrBuf = req.response;
             return opts.success({
               arrBuf: arrBuf,
               tag: tag
@@ -150,7 +151,7 @@
     };
 
     function PDFPNG(pdf, opts) {
-      var alpha, bVal, bits, chunkSize, colorSpace, colorType, colors, compressionMethod, filterMethod, gVal, greyVal, i, imageData, interlaceMethod, len, mask, palette, paletteObj, png, r, rVal, section, tr, trns, _i;
+      var alpha, bVal, bits, chunk, chunkSize, colorSpace, colorType, colors, compressionMethod, filterMethod, gVal, greyVal, i, idatLen, imageData, interlaceMethod, len, mask, palette, paletteObj, png, r, rVal, section, tr, trns, _i, _j, _len;
       png = new Uint8Array(opts.arrBuf);
       r = new Uint8ArrayReader(png);
       r.skip(PDFPNG.header.length);
@@ -265,7 +266,12 @@
             mask += ' ]';
         }
       }
-      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + imageData.length + "\n/Filter /FlateDecode\n/DecodeParms <<\n  /Predictor 15\n  /Colors " + colors + "\n  /BitsPerComponent " + bits + "\n  /Columns " + this.width + "\n  >>" + mask + "\n>>\nstream\n"].concat(__slice.call(imageData), ["\nendstream"]);
+      idatLen = 0;
+      for (_j = 0, _len = imageData.length; _j < _len; _j++) {
+        chunk = imageData[_j];
+        idatLen += chunk.length;
+      }
+      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace " + colorSpace + "\n/BitsPerComponent " + bits + "\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + idatLen + "\n/Filter /FlateDecode\n/DecodeParms <<\n  /Predictor 15\n  /Colors " + colors + "\n  /BitsPerComponent " + bits + "\n  /Columns " + this.width + "\n  >>" + mask + "\n>>\nstream\n"].concat(__slice.call(imageData), ["\nendstream"]);
       PDFPNG.__super__.constructor.call(this, pdf, opts);
     }
 

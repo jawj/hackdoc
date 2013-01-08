@@ -1,10 +1,9 @@
 
 @xhrImg = (opts) ->
-  xhr type: 'arraybuffer', url: opts.url, success: (req) ->
-    arrBuf = req.response
-    #imgBlob = new Blob [new Uint8Array arrBuf]
-    #imgUrl = (URL ? webkitURL).createObjectURL imgBlob
-    tag = make tag: 'img', src: opts.url, onload: -> opts.success {arrBuf, tag}
+  tag = make tag: 'img', src: opts.url, onload: -> 
+    xhr type: 'arraybuffer', url: opts.url, success: (req) ->  # should be from cache
+      arrBuf = req.response
+      opts.success {arrBuf, tag}
 
 class @PDFObj
   constructor: (pdf, opts = {}) ->
@@ -189,6 +188,9 @@ class @PDFPNG extends PDFObj
                 return
           mask += ' ]'
     
+    idatLen = 0
+    (idatLen += chunk.length) for chunk in imageData
+    
     opts.parts = ["""
       <<
       /Type /XObject
@@ -197,7 +199,7 @@ class @PDFPNG extends PDFObj
       /BitsPerComponent #{bits}
       /Width #{@width}
       /Height #{@height}
-      /Length #{imageData.length}
+      /Length #{idatLen}
       /Filter /FlateDecode
       /DecodeParms <<
         /Predictor 15
