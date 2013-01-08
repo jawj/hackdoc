@@ -739,6 +739,37 @@ https://github.com/jawj/hackdoc
       });
     };
 
+    HackDoc.prototype.linkAsync = function(filename, cb) {
+      var blob, fr;
+      blob = this.toBlob();
+      if (window.URL != null) {
+        return cb(make({
+          tag: 'a',
+          href: URL.createObjectURL(blob),
+          onclick: function() {
+            if (navigator.msSaveOrOpenBlob != null) {
+              navigator.msSaveOrOpenBlob(blob, filename);
+              return false;
+            }
+          }
+        }));
+      } else {
+        fr = new FileReader();
+        fr.readAsDataURL(blob);
+        return fr.onload = function() {
+          return cb(make({
+            tag: 'a',
+            href: fr.result,
+            onclick: function() {
+              if (navigator.appVersion.indexOf('Safari') !== -1) {
+                return false;
+              }
+            }
+          }));
+        };
+      }
+    };
+
     return HackDoc;
 
   })();

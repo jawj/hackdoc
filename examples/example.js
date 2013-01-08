@@ -31,7 +31,7 @@
   };
 
   pw = new ParallelWaiter(3, function(data) {
-    var blob, contentStream, fr, helvObj, jpegObj, pdf, pngObj, text1, text1full, text2, text2right, timesObj;
+    var contentStream, helvObj, jpegObj, pdf, pngObj, text1, text1full, text2, text2right, timesObj;
     pdf = new HackDoc(data.pdf);
     jpegObj = new PDFImage(pdf, data.jpeg);
     pngObj = new PDFImage(pdf, data.png);
@@ -71,36 +71,12 @@
       data: "<< \n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R >> \n/Font <<\n  /TT1.0 8 0 R\n  /TR " + timesObj.ref + "\n  /H " + helvObj.ref + "\n  >> \n/XObject <<\n  /Im1 9 0 R\n  /MyIm " + jpegObj.ref + "\n  /MyIm2 " + pngObj.ref + "\n  >>\n>>",
       num: 6
     });
-    blob = pdf.toBlob();
-    if (window.URL != null) {
-      return make({
-        tag: 'a',
-        href: URL.createObjectURL(blob),
-        text: 'PDF (object URL)',
-        parent: get({
-          tag: 'body'
-        }),
-        onclick: function() {
-          if (navigator.msSaveOrOpenBlob != null) {
-            navigator.msSaveOrOpenBlob(blob, "example.pdf");
-            return false;
-          }
-        }
-      });
-    } else {
-      fr = new FileReader();
-      fr.readAsDataURL(blob);
-      return fr.onload = function() {
-        return make({
-          tag: 'a',
-          href: fr.result,
-          text: 'PDF (data URI)',
-          parent: get({
-            tag: 'body'
-          })
-        });
-      };
-    }
+    return pdf.linkAsync('example.pdf', function(link) {
+      link.appendChild(text('PDF'));
+      return get({
+        tag: 'body'
+      }).appendChild(link);
+    });
   });
 
   loadAssets();

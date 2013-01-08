@@ -43,13 +43,6 @@ rootObj = new PDFObj pdf, data: """
 
 pdf.root = rootObj.ref
 
-blob = pdf.toBlob()
-if window.URL?
-  make tag: 'a', href: URL.createObjectURL(blob), text: 'PDF (object URL)', parent: get(tag: 'body'), onclick: ->
-    if navigator.msSaveOrOpenBlob?
-      navigator.msSaveOrOpenBlob blob, "simple.pdf"
-else
-  fr = new FileReader()
-  fr.readAsDataURL blob
-  fr.onload = ->
-    make tag: 'a', href: fr.result, text: 'PDF (data URI)', parent: get(tag: 'body')
+pdf.linkAsync 'simple.pdf', (link) ->
+  link.appendChild text 'PDF'
+  get(tag: 'body').appendChild link

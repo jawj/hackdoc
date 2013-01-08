@@ -250,18 +250,11 @@ pw = new ParallelWaiter 2, (data) ->
     >>
     """, num: 24
   
-  blob = pdf.toBlob()
-  fileName = "#{artist} #{albumName}".toLowerCase().replace(/\s+/g, '_').replace(/\W+/g, '') + '.pdf'
-  if window.URL?
-    make tag: 'a', href: URL.createObjectURL(blob), text: 'PDF (object URL)', parent: get(tag: 'body'), onclick: ->
-      if navigator.msSaveOrOpenBlob?
-        navigator.msSaveOrOpenBlob blob, fileName
-        return no
-  else
-    fr = new FileReader()
-    fr.readAsDataURL blob
-    fr.onload = ->
-      make tag: 'a', href: fr.result, text: 'PDF (data URI)', parent: get(tag: 'body')
+  filename = "#{artist} #{albumName}".toLowerCase().replace(/\s+/g, '_').replace(/\W+/g, '') + '.pdf'
+  pdf.linkAsync filename, (link) ->
+    link.appendChild text 'PDF'
+    get(tag: 'body').appendChild link
+  
 
 loadAssets()
   

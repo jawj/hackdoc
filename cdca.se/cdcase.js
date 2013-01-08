@@ -81,7 +81,7 @@
   };
 
   pw = new ParallelWaiter(2, function(data) {
-    var albumName, artist, artistFlow, artistPara, backContent, blob, dur, durFlow, durMatch, durMaxWidth, durRe, fileName, fontBoldObj, fontObj, fr, frontContent, height, i, imgObj, insideFlow, insidePara, insideSize, insideText, k, maxSpineWidth, maxTrackHeight, maxTrackWidth, mediaBox, mins, name, nameFlow, namePara, num, numAndDurSize, numFlow, numMatch, numMaxWidth, numRe, pdf, releaseStr, releasedate, secs, spineCommands, spineSize, spineSpace, spineXHeightFactor, t, totalWidth, track, trackCommands, trackData, trackSize, trackSpacing, trackText, tracks, v, _i, _j, _k, _l, _len, _len1, _ref3, _ref4;
+    var albumName, artist, artistFlow, artistPara, backContent, dur, durFlow, durMatch, durMaxWidth, durRe, filename, fontBoldObj, fontObj, frontContent, height, i, imgObj, insideFlow, insidePara, insideSize, insideText, k, maxSpineWidth, maxTrackHeight, maxTrackWidth, mediaBox, mins, name, nameFlow, namePara, num, numAndDurSize, numFlow, numMatch, numMaxWidth, numRe, pdf, releaseStr, releasedate, secs, spineCommands, spineSize, spineSpace, spineXHeightFactor, t, totalWidth, track, trackCommands, trackData, trackSize, trackSpacing, trackText, tracks, v, _i, _j, _k, _l, _len, _len1, _ref3, _ref4;
     pdf = new HackDoc(data.pdf);
     data.img.ignoreTransparency = true;
     imgObj = new PDFImage(pdf, data.img);
@@ -226,37 +226,13 @@
       data: "<<\n/ProcSet [ /PDF /Text ] /ColorSpace << /Cs2 9 0 R /Cs1 7 0 R >>\n/Font <<\n  /Tc10.0 29 0 R /TT8.1 27 0 R /Tc7.0 25 0 R /Tc9.0 28 0 R\n  /Fnt " + fontObj.ref + " /FntBold " + fontBoldObj.ref + "\n  >>\n>>",
       num: 24
     });
-    blob = pdf.toBlob();
-    fileName = ("" + artist + " " + albumName).toLowerCase().replace(/\s+/g, '_').replace(/\W+/g, '') + '.pdf';
-    if (window.URL != null) {
-      return make({
-        tag: 'a',
-        href: URL.createObjectURL(blob),
-        text: 'PDF (object URL)',
-        parent: get({
-          tag: 'body'
-        }),
-        onclick: function() {
-          if (navigator.msSaveOrOpenBlob != null) {
-            navigator.msSaveOrOpenBlob(blob, fileName);
-            return false;
-          }
-        }
-      });
-    } else {
-      fr = new FileReader();
-      fr.readAsDataURL(blob);
-      return fr.onload = function() {
-        return make({
-          tag: 'a',
-          href: fr.result,
-          text: 'PDF (data URI)',
-          parent: get({
-            tag: 'body'
-          })
-        });
-      };
-    }
+    filename = ("" + artist + " " + albumName).toLowerCase().replace(/\s+/g, '_').replace(/\W+/g, '') + '.pdf';
+    return pdf.linkAsync(filename, function(link) {
+      link.appendChild(text('PDF'));
+      return get({
+        tag: 'body'
+      }).appendChild(link);
+    });
   });
 
   loadAssets();

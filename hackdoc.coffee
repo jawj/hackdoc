@@ -486,7 +486,7 @@ class @HackDoc
   
   nextObjNum: -> @nextFreeObjNum++
   addObj: (obj) -> @objs.push obj
-  toBlob: ->
+  toBlob: () ->
     @objs.sort (a, b) -> a.objNum - b.objNum
     bodyParts = [].concat (o.parts for o in @objs)...
     
@@ -533,9 +533,9 @@ class @HackDoc
     
     if new Blob([new Uint8Array 0]).size isnt 0  # Safari helpfully adds a Uint8Array to Blob as '[object Uint8Array]'
       allParts = for p in allParts
-        if p.buffer?
-          if p.length is p.buffer.byteLength then p.buffer  # arrayview is a view of whole of backing buffer
-          else  # arrayview is a subarray with a larger backing buffer
+        if p.buffer?  # not worried about strings etc.
+          if p.length is p.buffer.byteLength then p.buffer  # view is of whole of backing buffer, just use that
+          else  # arrayview is a subarray with a larger backing buffer, so need to create a smaller one
             u8 = new Uint8Array p.length
             u8.set p
             u8.buffer
@@ -543,4 +543,18 @@ class @HackDoc
     
     new Blob allParts, type: 'application/pdf'
   
+  linkAsync: (filename, cb) ->
+    blob = @toBlob()
+    if window.URL?
+      cb make tag: 'a', href: URL.createObjectURL(blob), onclick: ->
+        if navigator.msSaveOrOpenBlob?
+          navigator.msSaveOrOpenBlob blob, filename
+          return no
+    else
+      fr = new FileReader()
+      fr.readAsDataURL blob
+      fr.onload = ->
+        cb make tag: 'a', href: fr.result, onclick: ->
+          return no if navigator.appVersion.indexOf('Safari') isnt -1  # Safari crashes on clicking a long data URI
+    
 
