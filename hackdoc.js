@@ -10,13 +10,11 @@
       type: 'arraybuffer',
       url: opts.url,
       success: function(req) {
-        var arrBuf, imgBlob, imgUrl, tag;
+        var arrBuf, tag;
         arrBuf = req.response;
-        imgBlob = new Blob([new Uint8Array(arrBuf)]);
-        imgUrl = (typeof URL !== "undefined" && URL !== null ? URL : webkitURL).createObjectURL(imgBlob);
         return tag = make({
           tag: 'img',
-          src: imgUrl,
+          src: opts.url,
           onload: function() {
             return opts.success({
               arrBuf: arrBuf,
@@ -659,7 +657,7 @@
     };
 
     HackDoc.prototype.toBlob = function() {
-      var bodyParts, consecutiveObjSets, currentSet, lastObjNum, o, objOffset, os, trailer, trailerPart, xref, _i, _j, _k, _len, _len1, _len2, _ref, _ref1;
+      var allParts, bodyParts, consecutiveObjSets, currentSet, lastObjNum, o, objOffset, os, p, trailer, trailerPart, u8, xref, _i, _j, _k, _len, _len1, _len2, _ref, _ref1;
       this.objs.sort(function(a, b) {
         return a.objNum - b.objNum;
       });
@@ -695,12 +693,34 @@
           objOffset += o.length;
         }
       }
-      trailerPart = this.appending ? "/Prev " + this.baseStartXref + "\"\n/ID [<" + this.prevId + "> <" + this.id + ">]" : "/ID [<" + this.id + "> <" + this.id + ">]";
+      trailerPart = this.appending ? "/Prev " + this.baseStartXref + "\n/ID [<" + this.prevId + "> <" + this.id + ">]" : "/ID [<" + this.id + "> <" + this.id + ">]";
       if (this.info) {
         trailerPart += "\n/Info " + this.info;
       }
       trailer = "\ntrailer\n<<\n" + trailerPart + "\n/Root " + this.root + "\n/Size " + this.nextFreeObjNum + "\n>>\n\nstartxref\n" + objOffset + "\n%%EOF";
-      return new Blob([this.basePDF].concat(__slice.call(bodyParts), [xref], [trailer]), {
+      allParts = [this.basePDF].concat(__slice.call(bodyParts), [xref], [trailer]);
+      if (new Blob([new Uint8Array(0)]).size !== 0) {
+        allParts = (function() {
+          var _l, _len3, _results;
+          _results = [];
+          for (_l = 0, _len3 = allParts.length; _l < _len3; _l++) {
+            p = allParts[_l];
+            if (p.buffer != null) {
+              if (p.length === p.buffer.byteLength) {
+                _results.push(p.buffer);
+              } else {
+                u8 = new Uint8Array(p.length);
+                u8.set(p);
+                _results.push(u8.buffer);
+              }
+            } else {
+              _results.push(p);
+            }
+          }
+          return _results;
+        })();
+      }
+      return new Blob(allParts, {
         type: 'application/pdf'
       });
     };

@@ -44,7 +44,12 @@ rootObj = new PDFObj pdf, data: """
 pdf.root = rootObj.ref
 
 blob = pdf.toBlob()
-make tag: 'a', href: (URL ? webkitURL).createObjectURL(blob), text: 'PDF', parent: get(tag: 'body'), onclick: ->
-  if navigator.msSaveOrOpenBlob?
-    navigator.msSaveOrOpenBlob blob, "simple.pdf"
-
+if window.URL?
+  make tag: 'a', href: URL.createObjectURL(blob), text: 'PDF (object URL)', parent: get(tag: 'body'), onclick: ->
+    if navigator.msSaveOrOpenBlob?
+      navigator.msSaveOrOpenBlob blob, "simple.pdf"
+else
+  fr = new FileReader()
+  fr.readAsDataURL blob
+  fr.onload = ->
+    make tag: 'a', href: fr.result, text: 'PDF (data URI)', parent: get(tag: 'body')

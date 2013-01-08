@@ -117,6 +117,7 @@ class @BinReader
   uint16be: -> (@uchar() << 8) + @uchar()
   uint32be: -> (@uint16be() << 16) + @uint16be()
   eof: -> @offset >= @data.length
+  
 
 class @BinStringReader extends BinReader
   uchar: -> @data.charCodeAt(@offset++) & 0xff
@@ -125,4 +126,4 @@ class @Uint8ArrayReader extends BinReader
   # keeps position, and compatible with older browsers than DataView
   uchar: -> @data[@offset++]
   subarray: (n) -> @data.subarray @offset, (@offset += n)
-  
+

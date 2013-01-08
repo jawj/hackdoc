@@ -31,7 +31,7 @@
   };
 
   pw = new ParallelWaiter(3, function(data) {
-    var blob, contentStream, helvObj, jpegObj, pdf, pngObj, text1, text1full, text2, text2right, timesObj;
+    var blob, contentStream, fr, helvObj, jpegObj, pdf, pngObj, text1, text1full, text2, text2right, timesObj;
     pdf = new HackDoc(data.pdf);
     jpegObj = new PDFImage(pdf, data.jpeg);
     pngObj = new PDFImage(pdf, data.png);
@@ -72,19 +72,35 @@
       num: 6
     });
     blob = pdf.toBlob();
-    return make({
-      tag: 'a',
-      href: (typeof URL !== "undefined" && URL !== null ? URL : webkitURL).createObjectURL(blob),
-      text: 'PDF',
-      parent: get({
-        tag: 'body'
-      }),
-      onclick: function() {
-        if (navigator.msSaveOrOpenBlob != null) {
-          return navigator.msSaveOrOpenBlob(blob, "example.pdf");
+    if (window.URL != null) {
+      return make({
+        tag: 'a',
+        href: URL.createObjectURL(blob),
+        text: 'PDF (object URL)',
+        parent: get({
+          tag: 'body'
+        }),
+        onclick: function() {
+          if (navigator.msSaveOrOpenBlob != null) {
+            navigator.msSaveOrOpenBlob(blob, "example.pdf");
+            return false;
+          }
         }
-      }
-    });
+      });
+    } else {
+      fr = new FileReader();
+      fr.readAsDataURL(blob);
+      return fr.onload = function() {
+        return make({
+          tag: 'a',
+          href: fr.result,
+          text: 'PDF (data URI)',
+          parent: get({
+            tag: 'body'
+          })
+        });
+      };
+    }
   });
 
   loadAssets();

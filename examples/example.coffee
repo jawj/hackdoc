@@ -86,8 +86,15 @@ pw = new ParallelWaiter 3, (data) ->
     """, num: 6
   
   blob = pdf.toBlob()
-  make tag: 'a', href: (URL ? webkitURL).createObjectURL(blob), text: 'PDF', parent: get(tag: 'body'), onclick: ->
-    if navigator.msSaveOrOpenBlob?
-      navigator.msSaveOrOpenBlob blob, "example.pdf"
+  if window.URL?
+    make tag: 'a', href: URL.createObjectURL(blob), text: 'PDF (object URL)', parent: get(tag: 'body'), onclick: ->
+      if navigator.msSaveOrOpenBlob?
+        navigator.msSaveOrOpenBlob blob, "example.pdf"
+        return no
+  else
+    fr = new FileReader()
+    fr.readAsDataURL blob
+    fr.onload = ->
+      make tag: 'a', href: fr.result, text: 'PDF (data URI)', parent: get(tag: 'body')
 
 loadAssets()

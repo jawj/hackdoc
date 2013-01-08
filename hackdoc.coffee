@@ -2,9 +2,9 @@
 @xhrImg = (opts) ->
   xhr type: 'arraybuffer', url: opts.url, success: (req) ->
     arrBuf = req.response
-    imgBlob = new Blob [new Uint8Array arrBuf]
-    imgUrl = (URL ? webkitURL).createObjectURL imgBlob
-    tag = make tag: 'img', src: imgUrl, onload: -> opts.success {arrBuf, tag}
+    #imgBlob = new Blob [new Uint8Array arrBuf]
+    #imgUrl = (URL ? webkitURL).createObjectURL imgBlob
+    tag = make tag: 'img', src: opts.url, onload: -> opts.success {arrBuf, tag}
 
 class @PDFObj
   constructor: (pdf, opts = {}) ->
@@ -499,7 +499,7 @@ class @HackDoc
     
     trailerPart = if @appending
       """
-      /Prev #{@baseStartXref}"
+      /Prev #{@baseStartXref}
       /ID [<#{@prevId}> <#{@id}>]
       """
     else
@@ -518,6 +518,19 @@ class @HackDoc
       #{objOffset}
       %%EOF
     """
-    new Blob [@basePDF, bodyParts..., xref, trailer], type: 'application/pdf'
+    
+    allParts = [@basePDF, bodyParts..., xref, trailer]
+    
+    if new Blob([new Uint8Array 0]).size isnt 0  # Safari helpfully adds a Uint8Array to Blob as '[object Uint8Array]'
+      allParts = for p in allParts
+        if p.buffer?
+          if p.length is p.buffer.byteLength then p.buffer  # arrayview is a view of whole of backing buffer
+          else  # arrayview is a subarray with a larger backing buffer
+            u8 = new Uint8Array p.length
+            u8.set p
+            u8.buffer
+        else p
+    
+    new Blob allParts, type: 'application/pdf'
   
 
