@@ -14,9 +14,17 @@ https://github.com/jawj/hackdoc
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   this.lzwEnc = function(input, earlyChange) {
-    var CLEAR, EOD, allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, i, maxValueWithBits, nextCode, output, w, wc, write, _i, _len;
+    var CLEAR, EOD, allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, i, maxValueWithBits, newInput, nextCode, output, w, wc, write, _i, _j, _len, _len1;
     if (earlyChange == null) {
       earlyChange = 1;
+    }
+    if (typeof input === 'string') {
+      newInput = new Uint8Array(input.length);
+      for (i = _i = 0, _len = input.length; _i < _len; i = ++_i) {
+        c = input[i];
+        newInput[i] = c.charCodeAt(0);
+      }
+      input = newInput;
     }
     CLEAR = 256;
     EOD = 257;
@@ -50,21 +58,23 @@ https://github.com/jawj/hackdoc
         if (bitPos > 0) {
           bitsToWrite = 8 - bitPos;
           writeValue = value >> (bitsPerValue - bitsToWrite);
+          output[bytePos] |= writeValue;
         } else if (bitPos === 0 && (bitsToWrite = bitsPerValue - valueBitsWritten) >= 8) {
           writeValue = (value >> (bitsToWrite - 8)) & 0xff;
           bitsToWrite = 8;
+          output[bytePos] = writeValue;
         } else {
           writeValue = (value << (8 - bitsToWrite)) & 0xff;
+          output[bytePos] |= writeValue;
         }
-        output[bytePos] |= writeValue;
         valueBitsWritten += bitsToWrite;
         allBitsWritten += bitsToWrite;
       }
       return null;
     };
     clear();
-    for (i = _i = 0, _len = input.length; _i < _len; i = ++_i) {
-      c = input[i];
+    for (_j = 0, _len1 = input.length; _j < _len1; _j++) {
+      c = input[_j];
       c = String.fromCharCode(c);
       wc = w + c;
       if (dict.hasOwnProperty(wc)) {

@@ -8,6 +8,11 @@ https://github.com/jawj/hackdoc
 # PDF ref: http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf
 
 @lzwEnc = (input, earlyChange = 1) ->
+  if typeof input is 'string'
+    newInput = new Uint8Array input.length
+    (newInput[i] = c.charCodeAt 0) for c, i in input
+    input = newInput
+  
   CLEAR = 256
   EOD = 257
   w = nextCode = dict = maxValueWithBits = null  # scope
@@ -39,18 +44,20 @@ https://github.com/jawj/hackdoc
       if bitPos > 0  # writing at right of byte
         bitsToWrite = 8 - bitPos
         writeValue = value >> (bitsPerValue - bitsToWrite)
+        output[bytePos] |= writeValue
       else if bitPos is 0 and (bitsToWrite = bitsPerValue - valueBitsWritten) >= 8  # writing a whole byte
         writeValue = (value >> (bitsToWrite - 8)) & 0xff
         bitsToWrite = 8
+        output[bytePos] = writeValue
       else  # writing at left of byte
         writeValue = (value << (8 - bitsToWrite)) & 0xff
-      output[bytePos] |= writeValue
+        output[bytePos] |= writeValue
       valueBitsWritten += bitsToWrite
       allBitsWritten += bitsToWrite
     null
   
   clear()
-  for c, i in input
+  for c in input
     c = String.fromCharCode c
     wc = w + c
     if dict.hasOwnProperty wc
