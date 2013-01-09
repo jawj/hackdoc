@@ -23,7 +23,7 @@ https://github.com/jawj/hackdoc
     while nextCode < 258
       dict[String.fromCharCode nextCode] = nextCode
       nextCode++
-    write CLEAR  # at old bitsPerValue
+    write CLEAR  # using old bitsPerValue
     bitsPerValue = 9
     maxValueWithBits = (1 << bitsPerValue) - earlyChange
   
