@@ -13,51 +13,148 @@ https://github.com/jawj/hackdoc
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
+  this.lzwEnc = function(input, earlyChange) {
+    var CLEAR, EOD, allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, maxValueWithBits, nextCode, output, w, wc, write, _i, _len;
+    if (earlyChange == null) {
+      earlyChange = 1;
+    }
+    CLEAR = 256;
+    EOD = 257;
+    w = nextCode = dict = maxValueWithBits = null;
+    output = new Uint8Array(input.length);
+    allBitsWritten = 0;
+    bitsPerValue = 9;
+    clear = function() {
+      w = '';
+      nextCode = 0;
+      dict = {};
+      while (nextCode < 258) {
+        dict[String.fromCharCode(nextCode)] = nextCode;
+        nextCode++;
+      }
+      write(CLEAR);
+      bitsPerValue = 9;
+      return maxValueWithBits = (1 << bitsPerValue) - earlyChange;
+    };
+    write = function(value) {
+      var bitPos, bitsToWrite, bytePos, newOutput, valueBitsWritten, writeValue;
+      valueBitsWritten = 0;
+      while (valueBitsWritten < bitsPerValue) {
+        bytePos = Math.floor(allBitsWritten / 8);
+        bitPos = allBitsWritten % 8;
+        if (bytePos === output.length) {
+          newOutput = new Uint8Array(output.length * 2);
+          newOutput.set(output);
+          output = newOutput;
+        }
+        if (bitPos > 0) {
+          bitsToWrite = 8 - bitPos;
+          writeValue = value >> (bitsPerValue - bitsToWrite);
+          valueBitsWritten += bitsToWrite;
+          allBitsWritten += bitsToWrite;
+        } else if (bitPos === 0 && (bitsToWrite = bitsPerValue - valueBitsWritten) >= 8) {
+          writeValue = (value >> (bitsToWrite - 8)) & 0xff;
+          valueBitsWritten += 8;
+          allBitsWritten += 8;
+        } else {
+          writeValue = (value << (8 - bitsToWrite)) & 0xff;
+          valueBitsWritten += bitsToWrite;
+          allBitsWritten += bitsToWrite;
+        }
+        output[bytePos] |= writeValue;
+      }
+      return null;
+    };
+    clear();
+    for (_i = 0, _len = input.length; _i < _len; _i++) {
+      c = input[_i];
+      c = String.fromCharCode(c);
+      wc = w + c;
+      if (dict.hasOwnProperty(wc)) {
+        w = wc;
+      } else {
+        dict[wc] = nextCode++;
+        write(dict[w]);
+        w = c;
+        if (nextCode > maxValueWithBits) {
+          if (bitsPerValue === 12) {
+            write(dict[w]);
+            clear();
+          } else {
+            bitsPerValue++;
+            maxValueWithBits = (1 << bitsPerValue) - earlyChange;
+          }
+        }
+      }
+    }
+    write(dict[w]);
+    write(EOD);
+    bytesUsed = Math.ceil(allBitsWritten / 8);
+    return output.subarray(0, bytesUsed);
+  };
+
   this.LZWCompressor = (function() {
 
     LZWCompressor.CLEAR = 256;
 
     LZWCompressor.EOD = 257;
 
-    function LZWCompressor(estimatedSize) {
-      if (estimatedSize == null) {
-        estimatedSize = 100;
-      }
-      this.output = new Uint8Array(estimatedSize);
+    function LZWCompressor(input, earlyChange) {
+      var c, wc, _i, _len;
+      this.earlyChange = earlyChange != null ? earlyChange : 1;
+      this.output = new Uint8Array(input.length);
       this.allBitsWritten = 0;
       this.setBitsPerValue(9);
       this.clear();
-    }
-
-    LZWCompressor.prototype.compress = function(input) {
-      var c, cCode, w, wc, _i, _len;
-      w = '';
       for (_i = 0, _len = input.length; _i < _len; _i++) {
-        cCode = input[_i];
-        c = String.fromCharCode(cCode);
-        wc = w + c;
+        c = input[_i];
+        if (typeof c !== 'string') {
+          c = String.fromCharCode(c);
+        }
+        wc = this.w + c;
         if (this.dict.hasOwnProperty(wc)) {
-          w = wc;
+          this.w = wc;
         } else {
           this.dict[wc] = this.nextCode++;
-          this.writeValue(this.dict[w]);
-          w = c;
+          this.writeValue(this.dict[this.w]);
+          this.w = c;
+          if (this.nextCode > this.maxValueWithBits) {
+            this.incBitsPerValue();
+          }
         }
       }
-      this.writeValue(this.dict[w]);
-      return this.finalize();
-    };
+      this.writeValue(this.dict[this.w]);
+      this.result = this.finalize();
+    }
 
     LZWCompressor.prototype.resize = function() {
       var newOutput;
+      console.log('resized');
       newOutput = new Uint8Array(this.output.length * 2);
       newOutput.set(this.output);
       return this.output = newOutput;
     };
 
+    LZWCompressor.prototype.incBitsPerValue = function() {
+      if (this.bitsPerValue === 12) {
+        this.writeValue(this.dict[this.w]);
+        return this.clear();
+      } else {
+        return this.setBitsPerValue(this.bitsPerValue + 1);
+      }
+    };
+
+    LZWCompressor.prototype.setBitsPerValue = function(bitsPerValue) {
+      this.bitsPerValue = bitsPerValue;
+      this.maxValueWithBits = (1 << this.bitsPerValue) - this.earlyChange;
+      return console.log(this.bitsPerValue, this.maxValueWithBits);
+    };
+
     LZWCompressor.prototype.clear = function() {
-      this.dict = {};
+      console.log('cleared');
+      this.w = '';
       this.nextCode = 0;
+      this.dict = {};
       while (this.nextCode < 258) {
         this.dict[String.fromCharCode(this.nextCode)] = this.nextCode;
         this.nextCode++;
@@ -67,28 +164,21 @@ https://github.com/jawj/hackdoc
     };
 
     LZWCompressor.prototype.finalize = function() {
-      var bytesUsed;
+      var b, binStr, bytesUsed, final, hex, _i, _len;
       this.writeValue(this.constructor.EOD);
       bytesUsed = Math.ceil(this.allBitsWritten / 8);
-      return this.output.subarray(0, bytesUsed);
-    };
-
-    LZWCompressor.prototype.setBitsPerValue = function(bitsPerValue) {
-      this.bitsPerValue = bitsPerValue != null ? bitsPerValue : this.bitsPerValue + 1;
-      if (this.bitsPerValue > 12) {
-        this.clear();
+      final = this.output.subarray(0, bytesUsed);
+      binStr = '';
+      for (_i = 0, _len = final.length; _i < _len; _i++) {
+        b = final[_i];
+        hex = b.toString(16);
+        if (hex.length === 1) {
+          hex = '0' + hex;
+        }
+        binStr += '\\x' + hex;
       }
-      return this.maxValueWithBits = (1 << this.bitsPerValue) - 1;
-    };
-
-    LZWCompressor.prototype.writeValues = function(values) {
-      var v, _i, _len, _results;
-      _results = [];
-      for (_i = 0, _len = values.length; _i < _len; _i++) {
-        v = values[_i];
-        _results.push(this.writeValue(v));
-      }
-      return _results;
+      console.log(binStr);
+      return final;
     };
 
     LZWCompressor.prototype.writeValue = function(value) {
@@ -97,7 +187,7 @@ https://github.com/jawj/hackdoc
       while (valueBitsWritten < this.bitsPerValue) {
         bytePos = Math.floor(this.allBitsWritten / 8);
         bitPos = this.allBitsWritten % 8;
-        if (bytePos > this.output.length - 1) {
+        if (bytePos === this.output.length) {
           this.resize();
         }
         if (bitPos > 0) {
@@ -117,9 +207,6 @@ https://github.com/jawj/hackdoc
           valueBitsWritten += bitsToWrite;
           this.allBitsWritten += bitsToWrite;
         }
-      }
-      if (value === this.maxValueWithBits) {
-        this.setBitsPerValue();
       }
       return null;
     };
@@ -186,12 +273,20 @@ https://github.com/jawj/hackdoc
     __extends(PDFStream, _super);
 
     function PDFStream(pdf, opts) {
-      var stream;
+      var filter, stream;
       if (opts == null) {
         opts = {};
       }
-      stream = opts.minify ? opts.stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n') : opts.stream;
-      opts.parts = ["<<\n/Length " + stream.length + "\n>>\nstream\n", stream, "\nendstream"];
+      stream = opts.stream;
+      if (opts.minify) {
+        stream = stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n');
+      }
+      filter = '';
+      if (opts.lzw) {
+        stream = new LZWCompressor(stream).result;
+        filter = "\n/Filter /LZWDecode\n/DecodeParms << /EarlyChange 1 >>";
+      }
+      opts.parts = ["<<\n/Length " + stream.length + filter + "\n>>\nstream\n", stream, "\nendstream"];
       PDFStream.__super__.constructor.call(this, pdf, opts);
     }
 
@@ -440,7 +535,7 @@ https://github.com/jawj/hackdoc
         });
         smaskRef = "\n/SMask " + smaskStream.ref;
       }
-      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + rgbArr.length + smaskRef + "\n>>\nstream\n", rgbArr, "\nendstream"];
+      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n%/Filter /LZWDecode\n/Length " + rgbArr.length + smaskRef + "\n>>\nstream\n", rgbArr, "\nendstream"];
       PDFImageViaCanvas.__super__.constructor.call(this, pdf, opts);
     }
 

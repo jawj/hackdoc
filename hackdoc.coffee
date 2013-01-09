@@ -11,63 +11,146 @@ https://github.com/jawj/hackdoc
 # - LZW filter?
 # - repack RGBA to RGB in-place? (check compatibility first)
 
+@lzwEnc = (input, earlyChange = 1) ->
+  CLEAR = 256
+  EOD = 257
+  w = nextCode = dict = maxValueWithBits = null  # scope
+  
+  output = new Uint8Array input.length
+  allBitsWritten = 0
+  bitsPerValue = 9
+  
+  clear = ->
+    w = ''
+    nextCode = 0
+    dict = {}
+    while nextCode < 258
+      dict[String.fromCharCode nextCode] = nextCode
+      nextCode++
+    write CLEAR  # at old bitsPerValue
+    bitsPerValue = 9
+    maxValueWithBits = (1 << bitsPerValue) - earlyChange
+  
+  write = (value) ->
+    valueBitsWritten = 0
+    while valueBitsWritten < bitsPerValue
+      bytePos = Math.floor(allBitsWritten / 8)
+      bitPos = allBitsWritten % 8
+      if bytePos is output.length
+        newOutput = new Uint8Array (output.length * 2)
+        newOutput.set output
+        output = newOutput
+      if bitPos > 0  # writing at right of byte
+        bitsToWrite = 8 - bitPos
+        writeValue = value >> (bitsPerValue - bitsToWrite)
+        valueBitsWritten += bitsToWrite
+        allBitsWritten += bitsToWrite
+      else if bitPos is 0 and (bitsToWrite = bitsPerValue - valueBitsWritten) >= 8  # writing a whole byte
+        writeValue = (value >> (bitsToWrite - 8)) & 0xff
+        valueBitsWritten += 8
+        allBitsWritten += 8
+      else  # writing at left of byte
+        writeValue = (value << (8 - bitsToWrite)) & 0xff
+        valueBitsWritten += bitsToWrite
+        allBitsWritten += bitsToWrite
+      output[bytePos] |= writeValue
+    null
+  
+  clear()
+  for c in input
+    c = String.fromCharCode(c)
+    wc = w + c
+    if dict.hasOwnProperty wc
+      w = wc
+    else
+      dict[wc] = nextCode++
+      write dict[w]
+      w = c
+      if nextCode > maxValueWithBits
+        if bitsPerValue is 12
+          write dict[w]
+          clear()
+        else
+          bitsPerValue++
+          maxValueWithBits = (1 << bitsPerValue) - earlyChange
+  
+  write dict[w]
+  write EOD
+  bytesUsed = Math.ceil(allBitsWritten / 8)
+  output.subarray 0, bytesUsed
 
 class @LZWCompressor
   @CLEAR = 256
   @EOD = 257
   
-  constructor: (estimatedSize = 100) ->
-    @output = new Uint8Array estimatedSize
+  constructor: (input, @earlyChange = 1) ->  # input is Uint8Array or string
+    @output = new Uint8Array input.length
     @allBitsWritten = 0
     @setBitsPerValue 9
     @clear()
-  
-  compress: (input) ->
-    w = ''
-    for cCode in input
-      c = String.fromCharCode cCode
-      wc = w + c
+    
+    for c in input
+      c = String.fromCharCode(c) unless typeof c is 'string'
+      wc = @w + c
       if @dict.hasOwnProperty wc
-        w = wc
+        @w = wc
       else
         @dict[wc] = @nextCode++
-        @writeValue @dict[w]
-        w = c
-    @writeValue @dict[w]
-    @finalize()
+        @writeValue @dict[@w]
+        @w = c
+        @incBitsPerValue() if @nextCode > @maxValueWithBits
+    @writeValue @dict[@w]
+    @result = @finalize()
   
   resize: ->
+    console.log 'resized'
     newOutput = new Uint8Array (@output.length * 2)
     newOutput.set @output
     @output = newOutput
-    
+  
+  incBitsPerValue: () ->
+    if @bitsPerValue is 12
+      @writeValue @dict[@w]
+      @clear()
+    else 
+      @setBitsPerValue @bitsPerValue + 1
+  
+  setBitsPerValue: (@bitsPerValue) ->
+    @maxValueWithBits = (1 << @bitsPerValue) - @earlyChange
+    console.log @bitsPerValue, @maxValueWithBits
+  
   clear: ->
-    @dict = {}
+    console.log 'cleared'
+    @w = ''
     @nextCode = 0
+    @dict = {}
     while @nextCode < 258
       @dict[String.fromCharCode @nextCode] = @nextCode
       @nextCode++
     @writeValue @constructor.CLEAR
     @setBitsPerValue 9
+    
   
   finalize: ->
     @writeValue @constructor.EOD
     bytesUsed = Math.ceil(@allBitsWritten / 8)
-    @output.subarray 0, bytesUsed
-  
-  setBitsPerValue: (@bitsPerValue = @bitsPerValue + 1) ->
-    @clear() if @bitsPerValue > 12
-    @maxValueWithBits = (1 << @bitsPerValue) - 1
-  
-  writeValues: (values) ->
-    @writeValue(v) for v in values
+    final = @output.subarray 0, bytesUsed
+    
+    binStr = ''
+    for b in final
+      hex = b.toString 16
+      hex = '0' + hex if hex.length is 1
+      binStr += '\\x' + hex
+    console.log binStr
+    
+    final
   
   writeValue: (value) ->
     valueBitsWritten = 0
     while valueBitsWritten < @bitsPerValue
       bytePos = Math.floor(@allBitsWritten / 8)
       bitPos = @allBitsWritten % 8
-      @resize() if bytePos > @output.length - 1
+      @resize() if bytePos is @output.length
       if bitPos > 0  # writing at right of byte
         bitsToWrite = 8 - bitPos
         writeValue = value >> (@bitsPerValue - bitsToWrite)
@@ -79,12 +162,11 @@ class @LZWCompressor
         @output[bytePos] = writeValue
         valueBitsWritten += 8
         @allBitsWritten += 8
-      else # writing at left of byte
+      else  # writing at left of byte
         writeValue = (value << (8 - bitsToWrite)) & 0xff
         @output[bytePos] = writeValue
         valueBitsWritten += bitsToWrite
         @allBitsWritten += bitsToWrite
-    @setBitsPerValue() if value is @maxValueWithBits
     null
   
 
@@ -108,10 +190,21 @@ class @PDFObj
 
 class @PDFStream extends PDFObj
   constructor: (pdf, opts = {}) ->
-    stream = if opts.minify  # minifying removes comments and blank lines
-      opts.stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n')
-    else opts.stream
-    opts.parts = ["<<\n/Length #{stream.length}\n>>\nstream\n", stream, "\nendstream"]
+    stream = opts.stream
+    stream = stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n') if opts.minify  # removes comments and blank lines
+    filter = ''
+    if opts.lzw
+      stream = new LZWCompressor(stream).result
+      filter = """
+        \n/Filter /LZWDecode
+        /DecodeParms << /EarlyChange 1 >>
+        """
+    opts.parts = ["""
+      <<
+      /Length #{stream.length}#{filter}
+      >>
+      stream\n""", stream, "\nendstream"]
+    
     super pdf, opts
   
 
@@ -338,6 +431,7 @@ class @PDFImageViaCanvas extends PDFObj
         stream\n""", alphaArr, "\nendstream"]
       smaskRef = "\n/SMask #{smaskStream.ref}"
     
+    #rgbArr = new LZWCompressor(rgbArr).result
     opts.parts = ["""
       <<
       /Type /XObject
@@ -346,6 +440,7 @@ class @PDFImageViaCanvas extends PDFObj
       /BitsPerComponent 8
       /Width #{@width}
       /Height #{@height}
+      %/Filter /LZWDecode
       /Length #{rgbArr.length}#{smaskRef}
       >>
       stream\n""", rgbArr, "\nendstream"]

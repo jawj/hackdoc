@@ -13,7 +13,7 @@ contentStream = new PDFStream pdf, stream: """
   70 50 TD
   /F1 #{fontSize} Tf
   #{PDFText.flowPara(PDFText.preprocessPara('Hello world!', fontName), fontSize).commands}
-  ET"""
+  ET""", lzw: yes
 
 # data-free declaration of pagesObj to break circular ref
 pagesObj = new PDFObj pdf

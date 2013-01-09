@@ -13,7 +13,8 @@
   });
 
   contentStream = new PDFStream(pdf, {
-    stream: "BT\n70 50 TD\n/F1 " + fontSize + " Tf\n" + (PDFText.flowPara(PDFText.preprocessPara('Hello world!', fontName), fontSize).commands) + "\nET"
+    stream: "BT\n70 50 TD\n/F1 " + fontSize + " Tf\n" + (PDFText.flowPara(PDFText.preprocessPara('Hello world!', fontName), fontSize).commands) + "\nET",
+    lzw: true
   });
 
   pagesObj = new PDFObj(pdf);
