@@ -13,6 +13,121 @@ https://github.com/jawj/hackdoc
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
+  this.LZWCompressor = (function() {
+
+    LZWCompressor.CLEAR = 256;
+
+    LZWCompressor.EOD = 257;
+
+    function LZWCompressor(estimatedSize) {
+      if (estimatedSize == null) {
+        estimatedSize = 100;
+      }
+      this.output = new Uint8Array(estimatedSize);
+      this.allBitsWritten = 0;
+      this.setBitsPerValue(9);
+      this.clear();
+    }
+
+    LZWCompressor.prototype.compress = function(input) {
+      var c, cCode, w, wc, _i, _len;
+      w = '';
+      for (_i = 0, _len = input.length; _i < _len; _i++) {
+        cCode = input[_i];
+        c = String.fromCharCode(cCode);
+        wc = w + c;
+        if (this.dict.hasOwnProperty(wc)) {
+          w = wc;
+        } else {
+          this.dict[wc] = this.nextCode++;
+          this.writeValue(this.dict[w]);
+          w = c;
+        }
+      }
+      this.writeValue(this.dict[w]);
+      return this.finalize();
+    };
+
+    LZWCompressor.prototype.resize = function() {
+      var newOutput;
+      newOutput = new Uint8Array(this.output.length * 2);
+      newOutput.set(this.output);
+      return this.output = newOutput;
+    };
+
+    LZWCompressor.prototype.clear = function() {
+      this.dict = {};
+      this.nextCode = 0;
+      while (this.nextCode < 258) {
+        this.dict[String.fromCharCode(this.nextCode)] = this.nextCode;
+        this.nextCode++;
+      }
+      this.writeValue(this.constructor.CLEAR);
+      return this.setBitsPerValue(9);
+    };
+
+    LZWCompressor.prototype.finalize = function() {
+      var bytesUsed;
+      this.writeValue(this.constructor.EOD);
+      bytesUsed = Math.ceil(this.allBitsWritten / 8);
+      return this.output.subarray(0, bytesUsed);
+    };
+
+    LZWCompressor.prototype.setBitsPerValue = function(bitsPerValue) {
+      this.bitsPerValue = bitsPerValue != null ? bitsPerValue : this.bitsPerValue + 1;
+      if (this.bitsPerValue > 12) {
+        this.clear();
+      }
+      return this.maxValueWithBits = (1 << this.bitsPerValue) - 1;
+    };
+
+    LZWCompressor.prototype.writeValues = function(values) {
+      var v, _i, _len, _results;
+      _results = [];
+      for (_i = 0, _len = values.length; _i < _len; _i++) {
+        v = values[_i];
+        _results.push(this.writeValue(v));
+      }
+      return _results;
+    };
+
+    LZWCompressor.prototype.writeValue = function(value) {
+      var bitPos, bitsToWrite, bytePos, valueBitsWritten, writeValue;
+      valueBitsWritten = 0;
+      while (valueBitsWritten < this.bitsPerValue) {
+        bytePos = Math.floor(this.allBitsWritten / 8);
+        bitPos = this.allBitsWritten % 8;
+        if (bytePos > this.output.length - 1) {
+          this.resize();
+        }
+        if (bitPos > 0) {
+          bitsToWrite = 8 - bitPos;
+          writeValue = value >> (this.bitsPerValue - bitsToWrite);
+          this.output[bytePos] |= writeValue;
+          valueBitsWritten += bitsToWrite;
+          this.allBitsWritten += bitsToWrite;
+        } else if (bitPos === 0 && (bitsToWrite = this.bitsPerValue - valueBitsWritten) >= 8) {
+          writeValue = (value >> (bitsToWrite - 8)) & 0xff;
+          this.output[bytePos] = writeValue;
+          valueBitsWritten += 8;
+          this.allBitsWritten += 8;
+        } else {
+          writeValue = (value << (8 - bitsToWrite)) & 0xff;
+          this.output[bytePos] = writeValue;
+          valueBitsWritten += bitsToWrite;
+          this.allBitsWritten += bitsToWrite;
+        }
+      }
+      if (value === this.maxValueWithBits) {
+        this.setBitsPerValue();
+      }
+      return null;
+    };
+
+    return LZWCompressor;
+
+  })();
+
   this.xhrImg = function(opts) {
     var tag;
     return tag = make({

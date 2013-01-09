@@ -7,6 +7,87 @@ https://github.com/jawj/hackdoc
 
 # PDF ref: http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf
 
+# TODO
+# - LZW filter?
+# - repack RGBA to RGB in-place? (check compatibility first)
+
+
+class @LZWCompressor
+  @CLEAR = 256
+  @EOD = 257
+  
+  constructor: (estimatedSize = 100) ->
+    @output = new Uint8Array estimatedSize
+    @allBitsWritten = 0
+    @setBitsPerValue 9
+    @clear()
+  
+  compress: (input) ->
+    w = ''
+    for cCode in input
+      c = String.fromCharCode cCode
+      wc = w + c
+      if @dict.hasOwnProperty wc
+        w = wc
+      else
+        @dict[wc] = @nextCode++
+        @writeValue @dict[w]
+        w = c
+    @writeValue @dict[w]
+    @finalize()
+  
+  resize: ->
+    newOutput = new Uint8Array (@output.length * 2)
+    newOutput.set @output
+    @output = newOutput
+    
+  clear: ->
+    @dict = {}
+    @nextCode = 0
+    while @nextCode < 258
+      @dict[String.fromCharCode @nextCode] = @nextCode
+      @nextCode++
+    @writeValue @constructor.CLEAR
+    @setBitsPerValue 9
+  
+  finalize: ->
+    @writeValue @constructor.EOD
+    bytesUsed = Math.ceil(@allBitsWritten / 8)
+    @output.subarray 0, bytesUsed
+  
+  setBitsPerValue: (@bitsPerValue = @bitsPerValue + 1) ->
+    @clear() if @bitsPerValue > 12
+    @maxValueWithBits = (1 << @bitsPerValue) - 1
+  
+  writeValues: (values) ->
+    @writeValue(v) for v in values
+  
+  writeValue: (value) ->
+    valueBitsWritten = 0
+    while valueBitsWritten < @bitsPerValue
+      bytePos = Math.floor(@allBitsWritten / 8)
+      bitPos = @allBitsWritten % 8
+      @resize() if bytePos > @output.length - 1
+      if bitPos > 0  # writing at right of byte
+        bitsToWrite = 8 - bitPos
+        writeValue = value >> (@bitsPerValue - bitsToWrite)
+        @output[bytePos] |= writeValue
+        valueBitsWritten += bitsToWrite
+        @allBitsWritten += bitsToWrite
+      else if bitPos is 0 and (bitsToWrite = @bitsPerValue - valueBitsWritten) >= 8  # writing a whole byte
+        writeValue = (value >> (bitsToWrite - 8)) & 0xff
+        @output[bytePos] = writeValue
+        valueBitsWritten += 8
+        @allBitsWritten += 8
+      else # writing at left of byte
+        writeValue = (value << (8 - bitsToWrite)) & 0xff
+        @output[bytePos] = writeValue
+        valueBitsWritten += bitsToWrite
+        @allBitsWritten += bitsToWrite
+    @setBitsPerValue() if value is @maxValueWithBits
+    null
+  
+
 @xhrImg = (opts) ->
   tag = make tag: 'img', src: opts.url, onload: -> 
     xhr type: 'arraybuffer', url: opts.url, success: (req) ->  # should be from cache
@@ -112,6 +193,7 @@ class @PDFPNG extends PDFObj
     r = new Uint8ArrayReader new Uint8Array opts.arrBuf
     r.binString(PDFPNG.header.length) is PDFPNG.header
     
+  
   constructor: (pdf, opts) ->
     png = new Uint8Array opts.arrBuf
     r = new Uint8ArrayReader png
@@ -556,5 +638,5 @@ class @HackDoc
       fr.onload = ->
         cb make tag: 'a', href: fr.result, onclick: ->
           return no if navigator.appVersion.indexOf('Safari') isnt -1  # Safari crashes on clicking a long data URI
-    
+  
 
