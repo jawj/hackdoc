@@ -14,7 +14,7 @@ https://github.com/jawj/hackdoc
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   this.lzwEnc = function(input, earlyChange) {
-    var CLEAR, EOD, allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, maxValueWithBits, nextCode, output, w, wc, write, _i, _len;
+    var CLEAR, EOD, allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, i, maxValueWithBits, nextCode, nextVal, output, w, wc, write, _i, _len;
     if (earlyChange == null) {
       earlyChange = 1;
     }
@@ -50,24 +50,30 @@ https://github.com/jawj/hackdoc
         if (bitPos > 0) {
           bitsToWrite = 8 - bitPos;
           writeValue = value >> (bitsPerValue - bitsToWrite);
-          valueBitsWritten += bitsToWrite;
-          allBitsWritten += bitsToWrite;
         } else if (bitPos === 0 && (bitsToWrite = bitsPerValue - valueBitsWritten) >= 8) {
           writeValue = (value >> (bitsToWrite - 8)) & 0xff;
-          valueBitsWritten += 8;
-          allBitsWritten += 8;
+          bitsToWrite = 8;
         } else {
           writeValue = (value << (8 - bitsToWrite)) & 0xff;
-          valueBitsWritten += bitsToWrite;
-          allBitsWritten += bitsToWrite;
         }
         output[bytePos] |= writeValue;
+        valueBitsWritten += bitsToWrite;
+        allBitsWritten += bitsToWrite;
       }
       return null;
     };
     clear();
-    for (_i = 0, _len = input.length; _i < _len; _i++) {
-      c = input[_i];
+    for (i = _i = 0, _len = input.length; _i < _len; i = ++_i) {
+      c = input[i];
+      nextVal = input[i + 3];
+      if ((i + 1) % 1800 === 0) {
+        nextVal = 0;
+      }
+      c -= nextVal;
+      c %= 256;
+      if (i < 1000) {
+        console.log(c);
+      }
       c = String.fromCharCode(c);
       wc = w + c;
       if (dict.hasOwnProperty(wc)) {
@@ -413,7 +419,8 @@ https://github.com/jawj/hackdoc
         });
         smaskRef = "\n/SMask " + smaskStream.ref;
       }
-      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n%/Filter /LZWDecode\n/Length " + rgbArr.length + smaskRef + "\n>>\nstream\n", rgbArr, "\nendstream"];
+      rgbArr = lzwEnc(rgbArr);
+      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Filter /LZWDecode %/DecodeParms << /Predictor 2 /Colors 3 /Columns " + this.width + " >>\n/Length " + rgbArr.length + smaskRef + "\n>>\nstream\n", rgbArr, "\nendstream"];
       PDFImageViaCanvas.__super__.constructor.call(this, pdf, opts);
     }
 

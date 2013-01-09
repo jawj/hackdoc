@@ -8,7 +8,6 @@ https://github.com/jawj/hackdoc
 # PDF ref: http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf
 
 # TODO
-# - LZW filter?
 # - repack RGBA to RGB in-place? (check compatibility first)
 
 @lzwEnc = (input, earlyChange = 1) ->
@@ -43,22 +42,24 @@ https://github.com/jawj/hackdoc
       if bitPos > 0  # writing at right of byte
         bitsToWrite = 8 - bitPos
         writeValue = value >> (bitsPerValue - bitsToWrite)
-        valueBitsWritten += bitsToWrite
-        allBitsWritten += bitsToWrite
       else if bitPos is 0 and (bitsToWrite = bitsPerValue - valueBitsWritten) >= 8  # writing a whole byte
         writeValue = (value >> (bitsToWrite - 8)) & 0xff
-        valueBitsWritten += 8
-        allBitsWritten += 8
+        bitsToWrite = 8
       else  # writing at left of byte
         writeValue = (value << (8 - bitsToWrite)) & 0xff
-        valueBitsWritten += bitsToWrite
-        allBitsWritten += bitsToWrite
       output[bytePos] |= writeValue
+      valueBitsWritten += bitsToWrite
+      allBitsWritten += bitsToWrite
     null
   
   clear()
-  for c in input
-    c = String.fromCharCode(c)
+  for c, i in input
+    nextVal = input[i + 3]
+    nextVal = 0 if (i + 1) % 1800 is 0
+    c -= nextVal
+    c %= 256
+    console.log c if i < 1000
+    c = String.fromCharCode c
     wc = w + c
     if dict.hasOwnProperty wc
       w = wc
@@ -340,7 +341,7 @@ class @PDFImageViaCanvas extends PDFObj
         stream\n""", alphaArr, "\nendstream"]
       smaskRef = "\n/SMask #{smaskStream.ref}"
     
-    #rgbArr = new LZWCompressor(rgbArr).result
+    rgbArr = lzwEnc rgbArr
     opts.parts = ["""
       <<
       /Type /XObject
@@ -349,7 +350,7 @@ class @PDFImageViaCanvas extends PDFObj
       /BitsPerComponent 8
       /Width #{@width}
       /Height #{@height}
-      %/Filter /LZWDecode
+      /Filter /LZWDecode %/DecodeParms << /Predictor 2 /Colors 3 /Columns #{@width} >>
       /Length #{rgbArr.length}#{smaskRef}
       >>
       stream\n""", rgbArr, "\nendstream"]
