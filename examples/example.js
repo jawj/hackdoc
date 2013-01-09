@@ -23,6 +23,7 @@
     return xhrImg({
       url: 'images/basn6a08.png',
       success: function(img) {
+        img.lzw = true;
         return pw.done({
           png: img
         });

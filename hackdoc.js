@@ -14,7 +14,7 @@ https://github.com/jawj/hackdoc
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   this.lzwEnc = function(input, earlyChange) {
-    var CLEAR, EOD, allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, i, maxValueWithBits, nextCode, nextVal, output, w, wc, write, _i, _len;
+    var CLEAR, EOD, allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, i, maxValueWithBits, nextCode, output, w, wc, write, _i, _len;
     if (earlyChange == null) {
       earlyChange = 1;
     }
@@ -65,15 +65,6 @@ https://github.com/jawj/hackdoc
     clear();
     for (i = _i = 0, _len = input.length; _i < _len; i = ++_i) {
       c = input[i];
-      nextVal = input[i - 3];
-      if (i % 1800 === 0) {
-        nextVal = 0;
-      }
-      c = c - nextVal;
-      c %= 256;
-      if (i < 1000) {
-        console.log(c);
-      }
       c = String.fromCharCode(c);
       wc = w + c;
       if (dict.hasOwnProperty(wc)) {
@@ -167,8 +158,8 @@ https://github.com/jawj/hackdoc
       }
       filter = '';
       if (opts.lzw) {
-        stream = new LZWCompressor(stream).result;
-        filter = "\n/Filter /LZWDecode\n/DecodeParms << /EarlyChange 1 >>";
+        stream = lzwEnc(stream);
+        filter = "\n/Filter /LZWDecode";
       }
       opts.parts = ["<<\n/Length " + stream.length + filter + "\n>>\nstream\n", stream, "\nendstream"];
       PDFStream.__super__.constructor.call(this, pdf, opts);
@@ -386,7 +377,7 @@ https://github.com/jawj/hackdoc
     __extends(PDFImageViaCanvas, _super);
 
     function PDFImageViaCanvas(pdf, opts) {
-      var alpha, alphaArr, alphaPos, alphaTrans, byteCount, canvas, ctx, i, pixelArr, rgbArr, rgbPos, smaskRef, smaskStream, _i, _ref;
+      var alpha, alphaArr, alphaPos, alphaTrans, byteCount, canvas, ctx, filter, i, pixelArr, predict, rgbArr, rgbPos, rowBytes, smaskRef, smaskStream, _i, _ref;
       if (opts == null) {
         opts = {};
       }
@@ -400,27 +391,42 @@ https://github.com/jawj/hackdoc
       ctx.drawImage(opts.tag, 0, 0);
       pixelArr = (ctx.getImageData(0, 0, this.width, this.height)).data;
       rgbArr = new Uint8Array(this.width * this.height * 3);
-      alphaArr = new Uint8Array(this.width * this.height);
+      if (!opts.ignoreTransparency) {
+        alphaArr = new Uint8Array(this.width * this.height);
+      }
+      alphaTrans = false;
       rgbPos = alphaPos = 0;
       byteCount = pixelArr.length;
-      alphaTrans = false;
+      rowBytes = this.width * 4;
       for (i = _i = 0; _i < byteCount; i = _i += 4) {
-        rgbArr[rgbPos++] = pixelArr[i];
-        rgbArr[rgbPos++] = pixelArr[i + 1];
-        rgbArr[rgbPos++] = pixelArr[i + 2];
-        alpha = pixelArr[i + 3];
-        alphaArr[alphaPos++] = alpha;
-        alphaTrans || (alphaTrans = alpha !== 0xff);
+        predict = opts.lzw && i % rowBytes !== 0;
+        rgbArr[rgbPos++] = pixelArr[i] - (predict ? pixelArr[i - 4] : 0);
+        rgbArr[rgbPos++] = pixelArr[i + 1] - (predict ? pixelArr[i - 3] : 0);
+        rgbArr[rgbPos++] = pixelArr[i + 2] - (predict ? pixelArr[i - 2] : 0);
+        if (!opts.ignoreTransparency) {
+          alpha = pixelArr[i + 3];
+          alphaTrans || (alphaTrans = alpha !== 0xff);
+          alphaArr[alphaPos++] = alpha - (predict ? pixelArr[i - 1] : 0);
+        }
       }
       smaskRef = '';
-      if (alphaTrans && !opts.ignoreTransparency) {
+      if (alphaTrans) {
+        filter = '';
+        if (opts.lzw) {
+          alphaArr = lzwEnc(alphaArr);
+          filter = "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 1 /Columns " + this.width + " >>";
+        }
         smaskStream = new PDFObj(pdf, {
-          parts: ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceGray\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + alphaArr.length + "\n>>\nstream\n", alphaArr, "\nendstream"]
+          parts: ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceGray\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + alphaArr.length + filter + "\n>>\nstream\n", alphaArr, "\nendstream"]
         });
         smaskRef = "\n/SMask " + smaskStream.ref;
       }
-      rgbArr = lzwEnc(rgbArr);
-      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 3 /Columns " + this.width + " >>\n/Length " + rgbArr.length + smaskRef + "\n>>\nstream\n", rgbArr, "\nendstream"];
+      filter = '';
+      if (opts.lzw) {
+        rgbArr = lzwEnc(rgbArr);
+        filter = "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 3 /Columns " + this.width + " >>";
+      }
+      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + rgbArr.length + smaskRef + filter + "\n>>\nstream\n", rgbArr, "\nendstream"];
       PDFImageViaCanvas.__super__.constructor.call(this, pdf, opts);
     }
 

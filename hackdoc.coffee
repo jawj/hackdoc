@@ -7,9 +7,6 @@ https://github.com/jawj/hackdoc
 
 # PDF ref: http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf
 
-# TODO
-# - repack RGBA to RGB in-place? (check compatibility first)
-
 @lzwEnc = (input, earlyChange = 1) ->
   CLEAR = 256
   EOD = 257
@@ -54,11 +51,6 @@ https://github.com/jawj/hackdoc
   
   clear()
   for c, i in input
-    nextVal = input[i - 3]
-    nextVal = 0 if i % 1800 is 0
-    c = c - nextVal
-    c %= 256
-    console.log c if i < 1000
     c = String.fromCharCode c
     wc = w + c
     if dict.hasOwnProperty wc
@@ -86,6 +78,7 @@ https://github.com/jawj/hackdoc
       arrBuf = req.response
       opts.success {arrBuf, tag}
 
+
 class @PDFObj
   constructor: (pdf, opts = {}) ->
     @objNum ?= opts.num ? pdf.nextObjNum()
@@ -104,11 +97,8 @@ class @PDFStream extends PDFObj
     stream = stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n') if opts.minify  # removes comments and blank lines
     filter = ''
     if opts.lzw
-      stream = new LZWCompressor(stream).result
-      filter = """
-        \n/Filter /LZWDecode
-        /DecodeParms << /EarlyChange 1 >>
-        """
+      stream = lzwEnc stream
+      filter = "\n/Filter /LZWDecode"
     opts.parts = ["""
       <<
       /Length #{stream.length}#{filter}
@@ -313,21 +303,28 @@ class @PDFImageViaCanvas extends PDFObj
     ctx = canvas.getContext '2d'
     ctx.drawImage opts.tag, 0, 0
     pixelArr = (ctx.getImageData 0, 0, @width, @height).data
-    rgbArr   = new Uint8Array @width * @height * 3
-    alphaArr = new Uint8Array @width * @height
+    rgbArr   = new Uint8Array @width * @height * 3  # not in place using subarray, as data is a standard Array in IE
+    alphaArr = new Uint8Array(@width * @height) unless opts.ignoreTransparency
+    alphaTrans = no
     rgbPos = alphaPos = 0
     byteCount = pixelArr.length
-    alphaTrans = no
+    rowBytes = @width * 4
     for i in [0...byteCount] by 4
-      rgbArr[rgbPos++] = pixelArr[i]
-      rgbArr[rgbPos++] = pixelArr[i + 1]
-      rgbArr[rgbPos++] = pixelArr[i + 2]
-      alpha = pixelArr[i + 3]
-      alphaArr[alphaPos++] = alpha
-      alphaTrans ||= alpha isnt 0xff
-    
+      predict = opts.lzw and i % rowBytes isnt 0
+      rgbArr[rgbPos++] = pixelArr[i]     - if predict then pixelArr[i - 4] else 0
+      rgbArr[rgbPos++] = pixelArr[i + 1] - if predict then pixelArr[i - 3] else 0
+      rgbArr[rgbPos++] = pixelArr[i + 2] - if predict then pixelArr[i - 2] else 0
+      unless opts.ignoreTransparency
+        alpha = pixelArr[i + 3]
+        alphaTrans ||= alpha isnt 0xff
+        alphaArr[alphaPos++] = alpha     - if predict then pixelArr[i - 1] else 0
+            
     smaskRef = ''
-    if alphaTrans and not opts.ignoreTransparency
+    if alphaTrans
+      filter = ''
+      if opts.lzw
+        alphaArr = lzwEnc alphaArr
+        filter = "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 1 /Columns #{@width} >>"
       smaskStream = new PDFObj pdf, parts: ["""
         <<
         /Type /XObject
@@ -336,12 +333,15 @@ class @PDFImageViaCanvas extends PDFObj
         /BitsPerComponent 8
         /Width #{@width}
         /Height #{@height}
-        /Length #{alphaArr.length}
+        /Length #{alphaArr.length}#{filter}
         >>
         stream\n""", alphaArr, "\nendstream"]
       smaskRef = "\n/SMask #{smaskStream.ref}"
     
-    rgbArr = lzwEnc rgbArr
+    filter = ''
+    if opts.lzw
+      rgbArr = lzwEnc rgbArr
+      filter = "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 3 /Columns #{@width} >>"
     opts.parts = ["""
       <<
       /Type /XObject
@@ -350,8 +350,7 @@ class @PDFImageViaCanvas extends PDFObj
       /BitsPerComponent 8
       /Width #{@width}
       /Height #{@height}
-      /Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 3 /Columns #{@width} >>
-      /Length #{rgbArr.length}#{smaskRef}
+      /Length #{rgbArr.length}#{smaskRef}#{filter}
       >>
       stream\n""", rgbArr, "\nendstream"]
     

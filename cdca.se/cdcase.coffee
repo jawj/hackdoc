@@ -1,5 +1,4 @@
 
-# TODO: can this work in Safari (and Opera) -- using base64, with size limit?
 # TODO: k-means bg colour
 # TODO: UI!
 # TODO: concatenate, minify & inline all JS
@@ -49,6 +48,7 @@ pw = new ParallelWaiter 2, (data) ->
   pdf = new HackDoc data.pdf
   
   data.img.ignoreTransparency = yes
+  # data.img.lzw = yes
   imgObj = new PDFImage pdf, data.img
   
   {artist, name: albumName, releasedate} = data.albumData.album
