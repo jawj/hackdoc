@@ -54,9 +54,9 @@ https://github.com/jawj/hackdoc
   
   clear()
   for c, i in input
-    nextVal = input[i + 3]
-    nextVal = 0 if (i + 1) % 1800 is 0
-    c -= nextVal
+    nextVal = input[i - 3]
+    nextVal = 0 if i % 1800 is 0
+    c = c - nextVal
     c %= 256
     console.log c if i < 1000
     c = String.fromCharCode c
@@ -350,7 +350,7 @@ class @PDFImageViaCanvas extends PDFObj
       /BitsPerComponent 8
       /Width #{@width}
       /Height #{@height}
-      /Filter /LZWDecode %/DecodeParms << /Predictor 2 /Colors 3 /Columns #{@width} >>
+      /Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 3 /Columns #{@width} >>
       /Length #{rgbArr.length}#{smaskRef}
       >>
       stream\n""", rgbArr, "\nendstream"]

@@ -65,11 +65,11 @@ https://github.com/jawj/hackdoc
     clear();
     for (i = _i = 0, _len = input.length; _i < _len; i = ++_i) {
       c = input[i];
-      nextVal = input[i + 3];
-      if ((i + 1) % 1800 === 0) {
+      nextVal = input[i - 3];
+      if (i % 1800 === 0) {
         nextVal = 0;
       }
-      c -= nextVal;
+      c = c - nextVal;
       c %= 256;
       if (i < 1000) {
         console.log(c);
@@ -420,7 +420,7 @@ https://github.com/jawj/hackdoc
         smaskRef = "\n/SMask " + smaskStream.ref;
       }
       rgbArr = lzwEnc(rgbArr);
-      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Filter /LZWDecode %/DecodeParms << /Predictor 2 /Colors 3 /Columns " + this.width + " >>\n/Length " + rgbArr.length + smaskRef + "\n>>\nstream\n", rgbArr, "\nendstream"];
+      opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 3 /Columns " + this.width + " >>\n/Length " + rgbArr.length + smaskRef + "\n>>\nstream\n", rgbArr, "\nendstream"];
       PDFImageViaCanvas.__super__.constructor.call(this, pdf, opts);
     }
 
