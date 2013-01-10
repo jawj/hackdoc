@@ -1,4 +1,8 @@
 
+@extend = (dest, src) -> 
+  (dest[k] = v) for k, v of src
+  dest
+
 @w = (str) -> str.split /\s+/
 @b64 = (input, output = '') ->
   chars = b64.chars
@@ -114,6 +118,7 @@ class @BinReader
     for i in [0...end]
       str += String.fromCharCode @uchar()
     str
+  
   uint16be: -> (@uchar() << 8) + @uchar()
   uint32be: -> (@uint16be() << 16) + @uint16be()
   eof: -> @offset >= @data.length

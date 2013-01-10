@@ -23,9 +23,10 @@
     return xhrImg({
       url: 'images/basn6a08.png',
       success: function(img) {
-        img.lzw = true;
         return pw.done({
-          png: img
+          png: extend(img, {
+            lzw: true
+          })
         });
       }
     });
@@ -56,7 +57,8 @@
       }).commands) + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
         maxWidth: 420,
         align: 'centre'
-      }).commands) + "\nET\nq\n  72 0 0 72 400 400 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm Do\nQ\nq\n  0.5 0.5 0.5 rg\n  380 620 112 32 re  f\n  72 0 0 72 400 600 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm2 Do\nQ"
+      }).commands) + "\nET\nq\n  72 0 0 72 400 400 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm Do\nQ\nq\n  0.5 0.5 0.5 rg\n  380 620 112 32 re  f\n  72 0 0 72 400 600 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm2 Do\nQ",
+      lzw: true
     });
     new PDFObj(pdf, {
       data: "<< \n/Type /Page \n/Parent 3 0 R\n/Resources 6 0 R\n/Contents [4 0 R " + contentStream.ref + "]\n/MediaBox [0 0 595 842]\n>>",

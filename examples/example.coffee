@@ -7,7 +7,7 @@
 loadAssets = ->
   xhr url: 'pdf/kernligimg.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: req.response
   xhrImg url: 'images/pound-coin.jpg', success: (img) -> pw.done jpeg: img
-  xhrImg url: 'images/basn6a08.png',   success: (img) -> img.lzw = yes; pw.done png:  img
+  xhrImg url: 'images/basn6a08.png',   success: (img) -> pw.done png: extend(img, lzw: yes)
 
 pw = new ParallelWaiter 3, (data) ->
   pdf = new HackDoc data.pdf
@@ -51,7 +51,7 @@ pw = new ParallelWaiter 3, (data) ->
       72 0 0 72 400 600 cm  % scaleX 0 0 scaleY translateX translateY
       /MyIm2 Do
     Q
-    """
+    """, lzw: yes
   
   # replace page object, with one change: adding a reference to our new content
   new PDFObj pdf, data: """

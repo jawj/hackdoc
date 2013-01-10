@@ -45,7 +45,7 @@ https://github.com/jawj/hackdoc
         bitsToWrite = 8 - bitPos
         writeValue = value >> (bitsPerValue - bitsToWrite)
         output[bytePos] |= writeValue
-      else if bitPos is 0 and (bitsToWrite = bitsPerValue - valueBitsWritten) >= 8  # writing a whole byte
+      else if (bitsToWrite = bitsPerValue - valueBitsWritten) >= 8  # writing a whole byte
         writeValue = (value >> (bitsToWrite - 8)) & 0xff
         bitsToWrite = 8
         output[bytePos] = writeValue
@@ -100,6 +100,7 @@ class @PDFObj
 
 class @PDFStream extends PDFObj
   constructor: (pdf, opts = {}) ->
+    # opts: minify, lzw
     stream = opts.stream
     stream = stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n') if opts.minify  # removes comments and blank lines
     filter = ''
@@ -304,7 +305,8 @@ class @PDFPNG extends PDFObj
   
 
 class @PDFImageViaCanvas extends PDFObj
-  constructor: (pdf, opts = {}) ->
+  constructor: (pdf, opts = {}) ->  
+    # opts: lzw, ignoreTransparency
     {@width, @height} = opts.tag
     canvas = make tag: 'canvas', width: @width, height: @height
     ctx = canvas.getContext '2d'

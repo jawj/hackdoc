@@ -4,6 +4,15 @@
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
+  this.extend = function(dest, src) {
+    var k, v;
+    for (k in src) {
+      v = src[k];
+      dest[k] = v;
+    }
+    return dest;
+  };
+
   this.w = function(str) {
     return str.split(/\s+/);
   };

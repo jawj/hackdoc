@@ -59,7 +59,7 @@ https://github.com/jawj/hackdoc
           bitsToWrite = 8 - bitPos;
           writeValue = value >> (bitsPerValue - bitsToWrite);
           output[bytePos] |= writeValue;
-        } else if (bitPos === 0 && (bitsToWrite = bitsPerValue - valueBitsWritten) >= 8) {
+        } else if ((bitsToWrite = bitsPerValue - valueBitsWritten) >= 8) {
           writeValue = (value >> (bitsToWrite - 8)) & 0xff;
           bitsToWrite = 8;
           output[bytePos] = writeValue;
