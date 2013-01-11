@@ -67,7 +67,7 @@
             break;
           }
         }
-        return xhrImg({
+        return PDFImage.xhr({
           url: imgUrl.replace(/^http:\//, 'http://mackerron.com'),
           success: function(img) {
             return pw.done({

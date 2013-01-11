@@ -13,114 +13,6 @@ https://github.com/jawj/hackdoc
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  this.lzwEnc = function(input, earlyChange) {
-    var allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, i, maxValueWithBits, newInput, nextCode, output, w, wc, write, _i, _j, _len, _len1;
-    if (earlyChange == null) {
-      earlyChange = 1;
-    }
-    if (typeof input === 'string') {
-      newInput = new Uint8Array(input.length);
-      for (i = _i = 0, _len = input.length; _i < _len; i = ++_i) {
-        c = input[i];
-        newInput[i] = c.charCodeAt(0) & 0xff;
-      }
-      input = newInput;
-    }
-    w = nextCode = dict = maxValueWithBits = null;
-    output = new Uint8Array(input.length);
-    allBitsWritten = 0;
-    bitsPerValue = 9;
-    write = function(value) {
-      var bitPos, bitsToWrite, bytePos, newOutput, valueBitsWritten, writeValue;
-      valueBitsWritten = 0;
-      while (valueBitsWritten < bitsPerValue) {
-        bytePos = Math.floor(allBitsWritten / 8);
-        bitPos = allBitsWritten % 8;
-        if (bytePos === output.length) {
-          newOutput = new Uint8Array(output.length * 2);
-          newOutput.set(output);
-          output = newOutput;
-        }
-        if (bitPos > 0) {
-          bitsToWrite = 8 - bitPos;
-          writeValue = value >> (bitsPerValue - bitsToWrite);
-          output[bytePos] |= writeValue;
-        } else if ((bitsToWrite = bitsPerValue - valueBitsWritten) >= 8) {
-          writeValue = (value >> (bitsToWrite - 8)) & 0xff;
-          bitsToWrite = 8;
-          output[bytePos] = writeValue;
-        } else {
-          writeValue = (value << (8 - bitsToWrite)) & 0xff;
-          output[bytePos] |= writeValue;
-        }
-        valueBitsWritten += bitsToWrite;
-        allBitsWritten += bitsToWrite;
-      }
-      return null;
-    };
-    clear = function() {
-      w = '';
-      nextCode = 0;
-      dict = {};
-      while (nextCode < 258) {
-        dict[String.fromCharCode(nextCode)] = nextCode;
-        nextCode++;
-      }
-      write(256);
-      bitsPerValue = 9;
-      return maxValueWithBits = (1 << bitsPerValue) - earlyChange;
-    };
-    clear();
-    for (_j = 0, _len1 = input.length; _j < _len1; _j++) {
-      c = input[_j];
-      c = String.fromCharCode(c);
-      wc = w + c;
-      if (dict.hasOwnProperty(wc)) {
-        w = wc;
-      } else {
-        dict[wc] = nextCode++;
-        write(dict[w]);
-        w = c;
-        if (nextCode > maxValueWithBits) {
-          if (bitsPerValue === 12) {
-            write(dict[w]);
-            clear();
-          } else {
-            bitsPerValue++;
-            maxValueWithBits = (1 << bitsPerValue) - earlyChange;
-          }
-        }
-      }
-    }
-    write(dict[w]);
-    write(257);
-    bytesUsed = Math.ceil(allBitsWritten / 8);
-    return output.subarray(0, bytesUsed);
-  };
-
-  this.xhrImg = function(opts) {
-    var tag;
-    tag = make({
-      tag: 'img',
-      crossOrigin: 'anonymous'
-    });
-    tag.src = opts.url;
-    return tag.onload = function() {
-      return xhr({
-        type: 'arraybuffer',
-        url: opts.url,
-        success: function(req) {
-          var arrBuf;
-          arrBuf = req.response;
-          return opts.success({
-            arrBuf: arrBuf,
-            tag: tag
-          });
-        }
-      });
-    };
-  };
-
   this.PDFObj = (function() {
 
     function PDFObj(pdf, opts) {
@@ -156,6 +48,91 @@ https://github.com/jawj/hackdoc
 
     __extends(PDFStream, _super);
 
+    PDFStream.lzwEnc = function(input, earlyChange) {
+      var allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, i, maxValueWithBits, newInput, nextCode, output, w, wc, write, _i, _j, _len, _len1;
+      if (earlyChange == null) {
+        earlyChange = 1;
+      }
+      if (typeof input === 'string') {
+        newInput = new Uint8Array(input.length);
+        for (i = _i = 0, _len = input.length; _i < _len; i = ++_i) {
+          c = input[i];
+          newInput[i] = c.charCodeAt(0) & 0xff;
+        }
+        input = newInput;
+      }
+      w = nextCode = dict = maxValueWithBits = null;
+      output = new Uint8Array(input.length);
+      allBitsWritten = 0;
+      bitsPerValue = 9;
+      write = function(value) {
+        var bitPos, bitsToWrite, bytePos, newOutput, valueBitsWritten, writeValue;
+        valueBitsWritten = 0;
+        while (valueBitsWritten < bitsPerValue) {
+          bytePos = Math.floor(allBitsWritten / 8);
+          bitPos = allBitsWritten % 8;
+          if (bytePos === output.length) {
+            newOutput = new Uint8Array(output.length * 2);
+            newOutput.set(output);
+            output = newOutput;
+          }
+          if (bitPos > 0) {
+            bitsToWrite = 8 - bitPos;
+            writeValue = value >> (bitsPerValue - bitsToWrite);
+            output[bytePos] |= writeValue;
+          } else if ((bitsToWrite = bitsPerValue - valueBitsWritten) >= 8) {
+            writeValue = (value >> (bitsToWrite - 8)) & 0xff;
+            bitsToWrite = 8;
+            output[bytePos] = writeValue;
+          } else {
+            writeValue = (value << (8 - bitsToWrite)) & 0xff;
+            output[bytePos] |= writeValue;
+          }
+          valueBitsWritten += bitsToWrite;
+          allBitsWritten += bitsToWrite;
+        }
+        return null;
+      };
+      clear = function() {
+        w = '';
+        nextCode = 0;
+        dict = {};
+        while (nextCode < 258) {
+          dict[String.fromCharCode(nextCode)] = nextCode;
+          nextCode++;
+        }
+        write(256);
+        bitsPerValue = 9;
+        return maxValueWithBits = (1 << bitsPerValue) - earlyChange;
+      };
+      clear();
+      for (_j = 0, _len1 = input.length; _j < _len1; _j++) {
+        c = input[_j];
+        c = String.fromCharCode(c);
+        wc = w + c;
+        if (dict.hasOwnProperty(wc)) {
+          w = wc;
+        } else {
+          dict[wc] = nextCode++;
+          write(dict[w]);
+          w = c;
+          if (nextCode > maxValueWithBits) {
+            if (bitsPerValue === 12) {
+              write(dict[w]);
+              clear();
+            } else {
+              bitsPerValue++;
+              maxValueWithBits = (1 << bitsPerValue) - earlyChange;
+            }
+          }
+        }
+      }
+      write(dict[w]);
+      write(257);
+      bytesUsed = Math.ceil(allBitsWritten / 8);
+      return output.subarray(0, bytesUsed);
+    };
+
     function PDFStream(pdf, opts) {
       var filter, stream;
       if (opts == null) {
@@ -167,7 +144,7 @@ https://github.com/jawj/hackdoc
       }
       filter = '';
       if (opts.lzw) {
-        stream = lzwEnc(stream);
+        stream = this.constructor.lzwEnc(stream);
         filter = "\n/Filter /LZWDecode";
       }
       opts.parts = ["<<\n/Length " + stream.length + filter + "\n>>\nstream\n", stream, "\nendstream"];
@@ -422,7 +399,7 @@ https://github.com/jawj/hackdoc
       if (alphaTrans) {
         filter = '';
         if (opts.lzw) {
-          alphaArr = lzwEnc(alphaArr);
+          alphaArr = PDFStream.lzwEnc(alphaArr);
           filter = "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 1 /Columns " + this.width + " >>";
         }
         smaskStream = new PDFObj(pdf, {
@@ -432,7 +409,7 @@ https://github.com/jawj/hackdoc
       }
       filter = '';
       if (opts.lzw) {
-        rgbArr = lzwEnc(rgbArr);
+        rgbArr = PDFStream.lzwEnc(rgbArr);
         filter = "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 3 /Columns " + this.width + " >>";
       }
       opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + rgbArr.length + smaskRef + filter + "\n>>\nstream\n", rgbArr, "\nendstream"];
@@ -444,6 +421,29 @@ https://github.com/jawj/hackdoc
   })(PDFObj);
 
   this.PDFImage = (function() {
+
+    PDFImage.xhr = function(opts) {
+      var tag;
+      tag = make({
+        tag: 'img',
+        crossOrigin: 'anonymous'
+      });
+      tag.src = opts.url;
+      return tag.onload = function() {
+        return xhr({
+          type: 'arraybuffer',
+          url: opts.url,
+          success: function(req) {
+            var arrBuf;
+            arrBuf = req.response;
+            return opts.success({
+              arrBuf: arrBuf,
+              tag: tag
+            });
+          }
+        });
+      };
+    };
 
     function PDFImage(pdf, opts) {
       if ((opts.arrBuf != null) && PDFJPEG.identify(opts)) {

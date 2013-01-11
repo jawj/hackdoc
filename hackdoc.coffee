@@ -7,85 +7,6 @@ https://github.com/jawj/hackdoc
 
 # PDF ref: http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf
 
-@lzwEnc = (input, earlyChange = 1) ->
-  if typeof input is 'string'
-    newInput = new Uint8Array input.length
-    (newInput[i] = c.charCodeAt(0) & 0xff) for c, i in input
-    input = newInput
-  
-  w = nextCode = dict = maxValueWithBits = null  # scope
-  output = new Uint8Array input.length
-  allBitsWritten = 0
-  bitsPerValue = 9  # used to write CLEAR in first call to clear()
-  
-  write = (value) ->  # writes 9- to 12-bit values
-    valueBitsWritten = 0
-    while valueBitsWritten < bitsPerValue
-      bytePos = Math.floor(allBitsWritten / 8)
-      bitPos = allBitsWritten % 8
-      if bytePos is output.length
-        newOutput = new Uint8Array (output.length * 2)
-        newOutput.set output
-        output = newOutput
-      if bitPos > 0  # writing at right of byte
-        bitsToWrite = 8 - bitPos
-        writeValue = value >> (bitsPerValue - bitsToWrite)
-        output[bytePos] |= writeValue
-      else if (bitsToWrite = bitsPerValue - valueBitsWritten) >= 8  # writing a whole byte
-        writeValue = (value >> (bitsToWrite - 8)) & 0xff
-        bitsToWrite = 8
-        output[bytePos] = writeValue
-      else  # writing at left of byte
-        writeValue = (value << (8 - bitsToWrite)) & 0xff
-        output[bytePos] |= writeValue
-      valueBitsWritten += bitsToWrite
-      allBitsWritten += bitsToWrite
-    null
-  
-  clear = ->
-    w = ''
-    nextCode = 0
-    dict = {}
-    while nextCode < 258
-      dict[String.fromCharCode nextCode] = nextCode
-      nextCode++
-    write 256  # CLEAR, using old bitsPerValue
-    bitsPerValue = 9
-    maxValueWithBits = (1 << bitsPerValue) - earlyChange
-  
-  clear()
-  
-  for c in input
-    c = String.fromCharCode c
-    wc = w + c
-    if dict.hasOwnProperty wc
-      w = wc
-    else
-      dict[wc] = nextCode++
-      write dict[w]
-      w = c
-      if nextCode > maxValueWithBits
-        if bitsPerValue is 12
-          write dict[w]
-          clear()
-        else
-          bitsPerValue++
-          maxValueWithBits = (1 << bitsPerValue) - earlyChange
-  
-  write dict[w]
-  write 257  # EOD
-  bytesUsed = Math.ceil(allBitsWritten / 8)
-  output.subarray 0, bytesUsed
-
-@xhrImg = (opts) ->
-  tag = make tag: 'img', crossOrigin: 'anonymous'
-  tag.src = opts.url  # must be set after crossOrigin attribute, hence separate
-  tag.onload = -> 
-    xhr type: 'arraybuffer', url: opts.url, success: (req) ->  # should be from cache
-      arrBuf = req.response
-      opts.success {arrBuf, tag}
-  
-
 class @PDFObj
   constructor: (pdf, opts = {}) ->
     @objNum ?= opts.num ? pdf.nextObjNum()
@@ -99,13 +20,83 @@ class @PDFObj
   
 
 class @PDFStream extends PDFObj
+  @lzwEnc = (input, earlyChange = 1) ->
+    if typeof input is 'string'
+      newInput = new Uint8Array input.length
+      (newInput[i] = c.charCodeAt(0) & 0xff) for c, i in input
+      input = newInput
+    
+    w = nextCode = dict = maxValueWithBits = null  # scope
+    output = new Uint8Array input.length
+    allBitsWritten = 0
+    bitsPerValue = 9  # used to write CLEAR in first call to clear()
+    
+    write = (value) ->  # writes 9- to 12-bit values
+      valueBitsWritten = 0
+      while valueBitsWritten < bitsPerValue
+        bytePos = Math.floor(allBitsWritten / 8)
+        bitPos = allBitsWritten % 8
+        if bytePos is output.length
+          newOutput = new Uint8Array (output.length * 2)
+          newOutput.set output
+          output = newOutput
+        if bitPos > 0  # writing at right of byte
+          bitsToWrite = 8 - bitPos
+          writeValue = value >> (bitsPerValue - bitsToWrite)
+          output[bytePos] |= writeValue
+        else if (bitsToWrite = bitsPerValue - valueBitsWritten) >= 8  # writing a whole byte
+          writeValue = (value >> (bitsToWrite - 8)) & 0xff
+          bitsToWrite = 8
+          output[bytePos] = writeValue
+        else  # writing at left of byte
+          writeValue = (value << (8 - bitsToWrite)) & 0xff
+          output[bytePos] |= writeValue
+        valueBitsWritten += bitsToWrite
+        allBitsWritten += bitsToWrite
+      null
+    
+    clear = ->
+      w = ''
+      nextCode = 0
+      dict = {}
+      while nextCode < 258
+        dict[String.fromCharCode nextCode] = nextCode
+        nextCode++
+      write 256  # CLEAR, using old bitsPerValue
+      bitsPerValue = 9
+      maxValueWithBits = (1 << bitsPerValue) - earlyChange
+    
+    clear()
+    
+    for c in input
+      c = String.fromCharCode c
+      wc = w + c
+      if dict.hasOwnProperty wc
+        w = wc
+      else
+        dict[wc] = nextCode++
+        write dict[w]
+        w = c
+        if nextCode > maxValueWithBits
+          if bitsPerValue is 12
+            write dict[w]
+            clear()
+          else
+            bitsPerValue++
+            maxValueWithBits = (1 << bitsPerValue) - earlyChange
+    
+    write dict[w]
+    write 257  # EOD
+    bytesUsed = Math.ceil(allBitsWritten / 8)
+    output.subarray 0, bytesUsed
+  
   constructor: (pdf, opts = {}) ->
     # opts: minify, lzw
     stream = opts.stream
     stream = stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n') if opts.minify  # removes comments and blank lines
     filter = ''
     if opts.lzw
-      stream = lzwEnc stream
+      stream = @constructor.lzwEnc stream
       filter = "\n/Filter /LZWDecode"
     opts.parts = ["""
       <<
@@ -332,7 +323,7 @@ class @PDFImageViaCanvas extends PDFObj
     if alphaTrans
       filter = ''
       if opts.lzw
-        alphaArr = lzwEnc alphaArr
+        alphaArr = PDFStream.lzwEnc alphaArr
         filter = "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 1 /Columns #{@width} >>"
       smaskStream = new PDFObj pdf, parts: ["""
         <<
@@ -349,7 +340,7 @@ class @PDFImageViaCanvas extends PDFObj
     
     filter = ''
     if opts.lzw
-      rgbArr = lzwEnc rgbArr
+      rgbArr = PDFStream.lzwEnc rgbArr
       filter = "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 3 /Columns #{@width} >>"
     opts.parts = ["""
       <<
@@ -367,6 +358,15 @@ class @PDFImageViaCanvas extends PDFObj
   
 
 class @PDFImage
+  @xhr = (opts) ->
+    tag = make tag: 'img', crossOrigin: 'anonymous'
+    tag.src = opts.url  # must be set after crossOrigin attribute, hence separate
+    tag.onload = -> 
+      xhr type: 'arraybuffer', url: opts.url, success: (req) ->  # should be from cache
+        arrBuf = req.response
+        opts.success {arrBuf, tag}
+    
+  
   constructor: (pdf, opts) ->
     if opts.arrBuf? and PDFJPEG.identify opts 
       return new PDFJPEG pdf, opts

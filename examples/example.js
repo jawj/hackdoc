@@ -12,7 +12,7 @@
         });
       }
     });
-    xhrImg({
+    PDFImage.xhr({
       url: 'images/pound-coin.jpg',
       success: function(img) {
         return pw.done({
@@ -20,7 +20,7 @@
         });
       }
     });
-    return xhrImg({
+    return PDFImage.xhr({
       url: 'images/basn6a08.png',
       success: function(img) {
         return pw.done({

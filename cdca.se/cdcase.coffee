@@ -40,7 +40,7 @@ loadAssets = ->
     for size in w 'mega extralarge large medium small'
       imgUrl = imgs[size]
       break if imgUrl?
-    xhrImg url: imgUrl.replace(/^http:\//, 'http://mackerron.com'), success: (img) ->
+    PDFImage.xhr url: imgUrl.replace(/^http:\//, 'http://mackerron.com'), success: (img) ->
       pw.done {albumData, img}
 
 pw = new ParallelWaiter 2, (data) ->

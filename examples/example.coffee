@@ -6,8 +6,8 @@
 
 loadAssets = ->
   xhr url: 'pdf/kernligimg.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: req.response
-  xhrImg url: 'images/pound-coin.jpg', success: (img) -> pw.done jpeg: img
-  xhrImg url: 'images/basn6a08.png',   success: (img) -> pw.done png: extend(img, lzw: yes)
+  PDFImage.xhr url: 'images/pound-coin.jpg', success: (img) -> pw.done jpeg: img
+  PDFImage.xhr url: 'images/basn6a08.png',   success: (img) -> pw.done png: extend(img, lzw: yes)
 
 pw = new ParallelWaiter 3, (data) ->
   pdf = new HackDoc data.pdf
