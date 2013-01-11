@@ -371,7 +371,7 @@ class @PDFImage
     if opts.arrBuf? and PDFJPEG.identify opts 
       return new PDFJPEG pdf, opts
     else if opts.arrBuf? and PDFPNG.identify opts 
-      return new PDFPNG pdf, opts
+      return new PDFPNG pdf, opts  # could end up as PDFImageViaCanvas if unsupported
     else if opts.tag?
       return new PDFImageViaCanvas pdf, opts
     else
