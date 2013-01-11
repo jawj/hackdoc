@@ -14,7 +14,7 @@ https://github.com/jawj/hackdoc
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   this.lzwEnc = function(input, earlyChange) {
-    var CLEAR, EOD, allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, i, maxValueWithBits, newInput, nextCode, output, w, wc, write, _i, _j, _len, _len1;
+    var allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, i, maxValueWithBits, newInput, nextCode, output, w, wc, write, _i, _j, _len, _len1;
     if (earlyChange == null) {
       earlyChange = 1;
     }
@@ -22,28 +22,14 @@ https://github.com/jawj/hackdoc
       newInput = new Uint8Array(input.length);
       for (i = _i = 0, _len = input.length; _i < _len; i = ++_i) {
         c = input[i];
-        newInput[i] = c.charCodeAt(0);
+        newInput[i] = c.charCodeAt(0) & 0xff;
       }
       input = newInput;
     }
-    CLEAR = 256;
-    EOD = 257;
     w = nextCode = dict = maxValueWithBits = null;
     output = new Uint8Array(input.length);
     allBitsWritten = 0;
     bitsPerValue = 9;
-    clear = function() {
-      w = '';
-      nextCode = 0;
-      dict = {};
-      while (nextCode < 258) {
-        dict[String.fromCharCode(nextCode)] = nextCode;
-        nextCode++;
-      }
-      write(CLEAR);
-      bitsPerValue = 9;
-      return maxValueWithBits = (1 << bitsPerValue) - earlyChange;
-    };
     write = function(value) {
       var bitPos, bitsToWrite, bytePos, newOutput, valueBitsWritten, writeValue;
       valueBitsWritten = 0;
@@ -72,6 +58,18 @@ https://github.com/jawj/hackdoc
       }
       return null;
     };
+    clear = function() {
+      w = '';
+      nextCode = 0;
+      dict = {};
+      while (nextCode < 258) {
+        dict[String.fromCharCode(nextCode)] = nextCode;
+        nextCode++;
+      }
+      write(256);
+      bitsPerValue = 9;
+      return maxValueWithBits = (1 << bitsPerValue) - earlyChange;
+    };
     clear();
     for (_j = 0, _len1 = input.length; _j < _len1; _j++) {
       c = input[_j];
@@ -95,31 +93,32 @@ https://github.com/jawj/hackdoc
       }
     }
     write(dict[w]);
-    write(EOD);
+    write(257);
     bytesUsed = Math.ceil(allBitsWritten / 8);
     return output.subarray(0, bytesUsed);
   };
 
   this.xhrImg = function(opts) {
     var tag;
-    return tag = make({
+    tag = make({
       tag: 'img',
-      src: opts.url,
-      onload: function() {
-        return xhr({
-          type: 'arraybuffer',
-          url: opts.url,
-          success: function(req) {
-            var arrBuf;
-            arrBuf = req.response;
-            return opts.success({
-              arrBuf: arrBuf,
-              tag: tag
-            });
-          }
-        });
-      }
+      crossOrigin: 'anonymous'
     });
+    tag.src = opts.url;
+    return tag.onload = function() {
+      return xhr({
+        type: 'arraybuffer',
+        url: opts.url,
+        success: function(req) {
+          var arrBuf;
+          arrBuf = req.response;
+          return opts.success({
+            arrBuf: arrBuf,
+            tag: tag
+          });
+        }
+      });
+    };
   };
 
   this.PDFObj = (function() {

@@ -83,8 +83,9 @@
   pw = new ParallelWaiter(2, function(data) {
     var albumName, artist, artistFlow, artistPara, backContent, dur, durFlow, durMatch, durMaxWidth, durRe, filename, fontBoldObj, fontObj, frontContent, height, i, imgObj, insideFlow, insidePara, insideSize, insideText, k, maxSpineWidth, maxTrackHeight, maxTrackWidth, mediaBox, mins, name, nameFlow, namePara, num, numAndDurSize, numFlow, numMatch, numMaxWidth, numRe, pdf, releaseStr, releasedate, secs, spineCommands, spineSize, spineSpace, spineXHeightFactor, t, totalWidth, track, trackCommands, trackData, trackSize, trackSpacing, trackText, tracks, v, _i, _j, _k, _l, _len, _len1, _ref3, _ref4;
     pdf = new HackDoc(data.pdf);
-    data.img.ignoreTransparency = true;
-    imgObj = new PDFImage(pdf, data.img);
+    imgObj = new PDFImage(pdf, extend(data.img, {
+      ignoreTransparency: true
+    }));
     _ref3 = data.albumData.album, artist = _ref3.artist, albumName = _ref3.name, releasedate = _ref3.releasedate;
     tracks = (function() {
       var _i, _len, _ref4, _results;

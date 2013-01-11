@@ -47,9 +47,7 @@ pw = new ParallelWaiter 2, (data) ->
 
   pdf = new HackDoc data.pdf
   
-  data.img.ignoreTransparency = yes
-  # data.img.lzw = yes
-  imgObj = new PDFImage pdf, data.img
+  imgObj = new PDFImage pdf, extend(data.img, ignoreTransparency: yes)
   
   {artist, name: albumName, releasedate} = data.albumData.album
   # artist += ' ' + artist + ' ' + artist + ' ' + artist  # test long artist/album names

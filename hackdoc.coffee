@@ -10,29 +10,15 @@ https://github.com/jawj/hackdoc
 @lzwEnc = (input, earlyChange = 1) ->
   if typeof input is 'string'
     newInput = new Uint8Array input.length
-    (newInput[i] = c.charCodeAt 0) for c, i in input
+    (newInput[i] = c.charCodeAt(0) & 0xff) for c, i in input
     input = newInput
   
-  CLEAR = 256
-  EOD = 257
   w = nextCode = dict = maxValueWithBits = null  # scope
-  
   output = new Uint8Array input.length
   allBitsWritten = 0
-  bitsPerValue = 9
+  bitsPerValue = 9  # used to write CLEAR in first call to clear()
   
-  clear = ->
-    w = ''
-    nextCode = 0
-    dict = {}
-    while nextCode < 258
-      dict[String.fromCharCode nextCode] = nextCode
-      nextCode++
-    write CLEAR  # using old bitsPerValue
-    bitsPerValue = 9
-    maxValueWithBits = (1 << bitsPerValue) - earlyChange
-  
-  write = (value) ->
+  write = (value) ->  # writes 9- to 12-bit values
     valueBitsWritten = 0
     while valueBitsWritten < bitsPerValue
       bytePos = Math.floor(allBitsWritten / 8)
@@ -56,7 +42,19 @@ https://github.com/jawj/hackdoc
       allBitsWritten += bitsToWrite
     null
   
+  clear = ->
+    w = ''
+    nextCode = 0
+    dict = {}
+    while nextCode < 258
+      dict[String.fromCharCode nextCode] = nextCode
+      nextCode++
+    write 256  # CLEAR, using old bitsPerValue
+    bitsPerValue = 9
+    maxValueWithBits = (1 << bitsPerValue) - earlyChange
+  
   clear()
+  
   for c in input
     c = String.fromCharCode c
     wc = w + c
@@ -75,16 +73,18 @@ https://github.com/jawj/hackdoc
           maxValueWithBits = (1 << bitsPerValue) - earlyChange
   
   write dict[w]
-  write EOD
+  write 257  # EOD
   bytesUsed = Math.ceil(allBitsWritten / 8)
   output.subarray 0, bytesUsed
 
 @xhrImg = (opts) ->
-  tag = make tag: 'img', src: opts.url, onload: -> 
-    xhr type: 'arraybuffer', url: opts.url, success: (req) ->  # should be from cache
+  tag = make tag: 'img', crossOrigin: 'anonymous'
+  tag.src = opts.url  # must be set after crossOrigin attribute, hence separate
+  tag.onload = -> 
+    xhr type: 'arraybuffer', url: opts.url, success: (req) ->  # should be from cache
       arrBuf = req.response
       opts.success {arrBuf, tag}
-
+  
 
 class @PDFObj
   constructor: (pdf, opts = {}) ->
