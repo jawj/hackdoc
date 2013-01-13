@@ -731,6 +731,22 @@ https://github.com/jawj/hackdoc
 
   })();
 
+  this.PDFTxt = (function() {
+
+    function PDFTxt() {}
+
+    PDFTxt.Word = (function() {
+
+      function Word() {}
+
+      return Word;
+
+    })();
+
+    return PDFTxt;
+
+  })();
+
   this.HackDoc = (function() {
 
     HackDoc.zeroPad = function(n, len) {

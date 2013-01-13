@@ -550,6 +550,10 @@ class @PDFText
     {commands, para, width, height}
   
 
+class @PDFTxt
+  class @Word
+  
+
 class @HackDoc
   @zeroPad = (n, len) ->
     zeroes = '0000000000'  # for len up to 10
