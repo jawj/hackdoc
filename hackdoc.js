@@ -49,7 +49,7 @@ https://github.com/jawj/hackdoc
     __extends(PDFStream, _super);
 
     PDFStream.lzwEnc = function(input, earlyChange) {
-      var allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, i, maxValueWithBits, newInput, nextCode, output, w, wc, write, _i, _j, _len, _len1;
+      var allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, i, keyPrefix, kpwc, maxValueWithBits, newInput, nextCode, output, w, wc, write, _i, _j, _len, _len1;
       if (earlyChange == null) {
         earlyChange = 1;
       }
@@ -65,6 +65,7 @@ https://github.com/jawj/hackdoc
       output = new Uint8Array(input.length);
       allBitsWritten = 0;
       bitsPerValue = 9;
+      keyPrefix = '#';
       write = function(value) {
         var bitPos, bitsToWrite, bytePos, newOutput, valueBitsWritten, writeValue;
         valueBitsWritten = 0;
@@ -98,7 +99,7 @@ https://github.com/jawj/hackdoc
         nextCode = 0;
         dict = {};
         while (nextCode < 258) {
-          dict[String.fromCharCode(nextCode)] = nextCode;
+          dict[keyPrefix + String.fromCharCode(nextCode)] = nextCode;
           nextCode++;
         }
         write(256);
@@ -110,15 +111,16 @@ https://github.com/jawj/hackdoc
         c = input[_j];
         c = String.fromCharCode(c);
         wc = w + c;
-        if (dict.hasOwnProperty(wc)) {
+        kpwc = keyPrefix + wc;
+        if (dict.hasOwnProperty(kpwc)) {
           w = wc;
         } else {
-          dict[wc] = nextCode++;
-          write(dict[w]);
+          dict[kpwc] = nextCode++;
+          write(dict[keyPrefix + w]);
           w = c;
           if (nextCode > maxValueWithBits) {
             if (bitsPerValue === 12) {
-              write(dict[w]);
+              write(dict[keyPrefix + w]);
               clear();
             } else {
               bitsPerValue++;
@@ -127,7 +129,7 @@ https://github.com/jawj/hackdoc
           }
         }
       }
-      write(dict[w]);
+      write(dict[keyPrefix + w]);
       write(257);
       bytesUsed = Math.ceil(allBitsWritten / 8);
       return output.subarray(0, bytesUsed);
@@ -588,7 +590,7 @@ https://github.com/jawj/hackdoc
     };
 
     PDFText.flowPara = function(para, fontSize, opts) {
-      var TJData, charCount, charSpace, charSpaceFactor, charStretch, commands, finishLine, fix, height, i, leading, line, lineData, linesData, minusLSpace, numLines, rSpace, scale, scaledLineWidth, scaledMaxWidth, scaledWidth, spaceCount, stretchFactor, width, willExceedHeight, willWrap, word, wordSpace, wordSpaceFactor, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+      var TJData, charCount, charSpace, charSpaceFactor, charStretch, commands, finishLine, fix, height, i, leading, line, lineData, linesData, minusLSpace, numLines, rSpace, scale, scaledLineWidth, scaledMaxWidth, scaledWidth, spaceCount, stretchFactor, width, willExceedHeight, willWrap, word, wordSpace, wordSpaceFactor, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
       if (opts == null) {
         opts = {};
       }
@@ -611,6 +613,12 @@ https://github.com/jawj/hackdoc
           stretchFactor: 0.15
         };
       }
+      if ((_ref5 = opts.hyphenate) == null) {
+        opts.hyphenate = false;
+      }
+      if ((_ref6 = opts.hyphLength) == null) {
+        opts.hyphLength = 0.8;
+      }
       scale = 1000 / fontSize;
       para = para.slice(0);
       scaledMaxWidth = opts.maxWidth * scale;
@@ -625,6 +633,9 @@ https://github.com/jawj/hackdoc
         var lastWord;
         lastWord = line[line.length - 1];
         scaledLineWidth += lastWord.endWidth - lastWord.midWidth;
+        if (opts.hyphenate && scaledLineWidth < opts.hyphLength * scaledMaxWidth) {
+          console.log('hyphenate after: ', lastWord, 'hyphenate: ', word);
+        }
         charCount -= lastWord.spaceCount;
         spaceCount -= lastWord.spaceCount;
         linesData.push({
@@ -683,7 +694,7 @@ https://github.com/jawj/hackdoc
             wordSpace = charSpace = 0;
             charStretch = 100;
           } else {
-            _ref5 = opts.justify, wordSpaceFactor = _ref5.wordSpaceFactor, charSpaceFactor = _ref5.charSpaceFactor, stretchFactor = _ref5.stretchFactor;
+            _ref7 = opts.justify, wordSpaceFactor = _ref7.wordSpaceFactor, charSpaceFactor = _ref7.charSpaceFactor, stretchFactor = _ref7.stretchFactor;
             if (spaceCount === 0) {
               wordSpace = 0;
               charSpaceFactor *= 1 / (1 - wordSpaceFactor);

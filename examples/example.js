@@ -41,7 +41,8 @@
     text2 = PDFText.preprocessPara('The wind was a torrent of darkness among the gusty fleas, The moon was a ghostly galleon tossed upon cloudy seas, The road was a ribbon of moonlight over the purple moor, And the highwayman came riding— Riding—riding— The highwayman came fiding, up to the old inn-door.', 'Times-Roman');
     text1full = PDFText.flowPara(text1, 12, {
       maxWidth: 250,
-      align: 'full'
+      align: 'full',
+      hyphenate: true
     });
     text2right = PDFText.flowPara(text2, 14, {
       maxWidth: 420,

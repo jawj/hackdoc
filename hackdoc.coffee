@@ -30,6 +30,7 @@ class @PDFStream extends PDFObj
     output = new Uint8Array input.length
     allBitsWritten = 0
     bitsPerValue = 9  # used to write CLEAR in first call to clear()
+    keyPrefix = '#'   # so that compressing repeated 'hasOwnProperty', '__proto__' etc. is OK
     
     write = (value) ->  # writes 9- to 12-bit values
       valueBitsWritten = 0
@@ -60,7 +61,7 @@ class @PDFStream extends PDFObj
       nextCode = 0
       dict = {}
       while nextCode < 258
-        dict[String.fromCharCode nextCode] = nextCode
+        dict[keyPrefix + String.fromCharCode nextCode] = nextCode
         nextCode++
       write 256  # CLEAR, using old bitsPerValue
       bitsPerValue = 9
@@ -71,21 +72,22 @@ class @PDFStream extends PDFObj
     for c in input
       c = String.fromCharCode c
       wc = w + c
-      if dict.hasOwnProperty wc
+      kpwc = keyPrefix + wc
+      if dict.hasOwnProperty kpwc
         w = wc
       else
-        dict[wc] = nextCode++
-        write dict[w]
+        dict[kpwc] = nextCode++
+        write dict[keyPrefix + w]
         w = c
         if nextCode > maxValueWithBits
           if bitsPerValue is 12
-            write dict[w]
+            write dict[keyPrefix + w]
             clear()
           else
             bitsPerValue++
             maxValueWithBits = (1 << bitsPerValue) - earlyChange
     
-    write dict[w]
+    write dict[keyPrefix + w]
     write 257  # EOD
     bytesUsed = Math.ceil(allBitsWritten / 8)
     output.subarray 0, bytesUsed
@@ -465,6 +467,8 @@ class @PDFText
     opts.lineHeight ?= 1.3
     opts.align      ?= 'left'  # or 'right', 'centre', 'full' (in which case, remember: disable ligatures)
     opts.justify    ?= {wordSpaceFactor: 0.45, charSpaceFactor: 0.40, stretchFactor: 0.15}
+    opts.hyphenate  ?= no
+    opts.hyphLength ?= 0.8
     
     scale = 1000 / fontSize
     
@@ -479,6 +483,12 @@ class @PDFText
     finishLine = ->
       lastWord = line[line.length - 1]
       scaledLineWidth += lastWord.endWidth - lastWord.midWidth
+      
+      # hyphenate
+      if opts.hyphenate and scaledLineWidth < opts.hyphLength * scaledMaxWidth
+        console.log 'hyphenate after: ', lastWord, 'hyphenate: ', word
+        
+      
       charCount -= lastWord.spaceCount
       spaceCount -= lastWord.spaceCount
       linesData.push {line, scaledLineWidth, charCount, spaceCount}
