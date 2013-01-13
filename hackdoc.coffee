@@ -21,16 +21,16 @@ class @PDFObj
 
 class @PDFStream extends PDFObj
   @lzwEnc = (input, earlyChange = 1) ->
-    if typeof input is 'string'
-      newInput = new Uint8Array input.length
-      (newInput[i] = c.charCodeAt(0) & 0xff) for c, i in input
-      input = newInput
-    
     w = nextCode = dict = maxValueWithBits = null  # scope
     output = new Uint8Array input.length
     allBitsWritten = 0
     bitsPerValue = 9  # used to write CLEAR in first call to clear()
     keyPrefix = '#'   # so that compressing repeated 'hasOwnProperty', '__proto__' etc. is OK
+    
+    read = if typeof input is 'string'
+      (pos) -> input.charAt pos
+    else
+      (pos) -> String.fromCharCode input[pos]
     
     write = (value) ->  # writes 9- to 12-bit values
       valueBitsWritten = 0
@@ -69,8 +69,9 @@ class @PDFStream extends PDFObj
     
     clear()
     
-    for c in input
-      c = String.fromCharCode c
+    len = input.length
+    for i in [0...len]
+      c = read i
       wc = w + c
       kpwc = keyPrefix + wc
       if dict.hasOwnProperty kpwc
