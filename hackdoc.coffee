@@ -7,11 +7,6 @@ https://github.com/jawj/hackdoc
 
 # PDF ref: http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf
 
-PDFMetrics.ligatureRegExps = {}
-for fontName, ligs of PDFMetrics.ligatures
-  PDFMetrics.ligatureRegExps[fontName] = for k, v of ligs
-    {re: new RegExp(k, 'g'), lig: v}
-
 class @PDFObj
   constructor: (pdf, opts = {}) ->
     @objNum ?= opts.num ? pdf.nextObjNum()
@@ -562,34 +557,69 @@ class @xPDFText
 
 class @PDFText
   class @Word
-    @arrayFromText = (s, fontName) -> 
+    @parasFromText = (s) -> s.split /\r\n|\r|\n/
+    @wordsFromPara = (s, fontName) -> 
       words = s.match /[^ —–-]*[—–-]? */g
       words.pop()  # since last match always empty
-      new Word(w, fontName) for w in words
+      new Word(w, words[i + 1], fontName) for w, i in words
     
-    constructor: (s, @fontName, @opts = {}) ->
-      @opts.ligatures ?= yes
-      
-      @original = ''
-      len = s.length
-      for i in [0...len]
-        c = s.charAt i
-        @original += if PDFMetrics.codes[c]? and PDFMetrics.widths[@fontName][c]? then c else '_'
-      
-      @processed = @original
-      if @opts.ligatures
-        for {re, lig} in PDFMetrics.ligatureRegExps[@fontName]
-          @processed = @processed.replace re, lig
-      
-    
-    toHexString = (s, hex = '<') ->
+    @hexify = (s, hex = '<') ->
       len = s.length
       for i in [0...len]
         hex += PDFMetrics.codes[s.charAt i]
       hex + '>'
+    
+    constructor: (s, after, @fontName, ligatures = yes) ->
+      rawStr = ''
+      len = s.length
+      for i in [0...len]
+        c = s.charAt i
+        rawStr += if PDFMetrics.codes[c]? and PDFMetrics.widths[@fontName][c]? then c else '_'
+      
+      if ligatures
+        ligStr = rawStr
+        for {re, lig} in PDFMetrics.ligatureRegExps[@fontName]
+          ligStr = ligStr.replace re, lig
+      
+      @rawStr = rawStr
+      @ligStr = ligStr unless ligStr is rawStr  # only store if different (unusual)
+      @charAfter = after.charAt 0 if after?
+      
+      @calcWidth()
+    
+    calcWidth: ->
+      word = (@ligStr ? @rawStr) + (@charAfter ? ' ')
+      @midWidth = @endWidth = @charCount = @spaceCount = 0
+      @commands = str = ''
+      seenSpace = no
+      widths = PDFMetrics.widths[fontName]
+      kerning = PDFMetrics.kerning[fontName]
+      
+      for i in [0...(word.length - 1)]  # exclude final char, which is part of next word (or a space)
+        char = word.charAt i
+        nextChar = word.charAt(i + 1)
+        seenSpace ||= char is ' '
+        charWidth = widths[char]
+        @midWidth += charWidth 
+        @endWidth += charWidth unless seenSpace
+        @charCount++
+        @spaceCount++ if seenSpace
+        str += char
+        kernWidth = kerning[char]?[nextChar]
+        if kernWidth?
+          @commands += "#{@constructor.hexify str} #{kernWidth} "
+          str = ''
+          @midWidth -= kernWidth
+          @endWidth -= kernWidth unless seenSpace
+        
+      @commands += "#{@constructor.hexify str} " if str.length > 0
+    
   
   class @Line
-  
+    constructor: ->
+      
+      
+    toCommands: ->
 
 class @HackDoc
   @zeroPad = (n, len) ->
@@ -703,5 +733,10 @@ class @HackDoc
       fr.onload = ->
         cb make tag: 'a', href: fr.result, onclick: ->
           return no if navigator.appVersion.indexOf('Safari') isnt -1  # Safari crashes on clicking a long data URI
-  
+
+
+PDFMetrics.ligatureRegExps = {}
+for fontName, ligs of PDFMetrics.ligatures
+  PDFMetrics.ligatureRegExps[fontName] = for k, v of ligs
+    {re: new RegExp(k, 'g'), lig: v}
 
