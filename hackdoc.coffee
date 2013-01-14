@@ -175,7 +175,7 @@ class @PDFPNG extends PDFObj
   # unsupported images are those with:
   # - Adam7 interlacing
   # - alpha transparency (even if opts.ignoreTransparency is set)
-  # - simple (tRNS) transparency, and paletted color type, and any color that's partially transparent
+  # - simple (tRNS) transparency /and/ paletted color type /and/ any color that's partially transparent
   #   (unless opts.ignoreTransparency is true)
   
   # references:
@@ -187,7 +187,6 @@ class @PDFPNG extends PDFObj
   @identify = (opts) ->
     r = new Uint8ArrayReader new Uint8Array opts.arrBuf
     r.binString(PDFPNG.header.length) is PDFPNG.header
-    
   
   constructor: (pdf, opts) ->
     png = new Uint8Array opts.arrBuf
@@ -301,17 +300,20 @@ class @PDFPNG extends PDFObj
 class @PDFImageViaCanvas extends PDFObj
   constructor: (pdf, opts = {}) ->  
     # opts: lzw, ignoreTransparency
+    
     {@width, @height} = opts.tag
     canvas = make tag: 'canvas', width: @width, height: @height
     ctx = canvas.getContext '2d'
     ctx.drawImage opts.tag, 0, 0
     pixelArr = (ctx.getImageData 0, 0, @width, @height).data
-    rgbArr   = new Uint8Array @width * @height * 3  # not in place using subarray, as data is a standard Array in IE
-    alphaArr = new Uint8Array(@width * @height) unless opts.ignoreTransparency
+    
+    rgbArr   = new Uint8Array @width * @height * 3  # not in-place using subarray, as data is a standard Array in IE
+    alphaArr = new Uint8Array @width * @height unless opts.ignoreTransparency
     alphaTrans = no
     rgbPos = alphaPos = 0
     byteCount = pixelArr.length
     rowBytes = @width * 4
+    
     for i in [0...byteCount] by 4
       predict = opts.lzw and i % rowBytes isnt 0
       rgbArr[rgbPos++] = pixelArr[i]     - if predict then pixelArr[i - 4] else 0
@@ -322,12 +324,12 @@ class @PDFImageViaCanvas extends PDFObj
         alphaTrans ||= alpha isnt 0xff
         alphaArr[alphaPos++] = alpha     - if predict then pixelArr[i - 1] else 0
             
-    smaskRef = ''
-    if alphaTrans
-      filter = ''
-      if opts.lzw
+    smaskRef = if alphaTrans
+      filter = if opts.lzw
         alphaArr = PDFStream.lzwEnc alphaArr
-        filter = "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 1 /Columns #{@width} >>"
+        "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 1 /Columns #{@width} >>"
+      else ''
+      
       smaskStream = new PDFObj pdf, parts: ["""
         <<
         /Type /XObject
@@ -339,12 +341,15 @@ class @PDFImageViaCanvas extends PDFObj
         /Length #{alphaArr.length}#{filter}
         >>
         stream\n""", alphaArr, "\nendstream"]
-      smaskRef = "\n/SMask #{smaskStream.ref}"
+      
+      "\n/SMask #{smaskStream.ref}"
+    else ''
     
-    filter = ''
-    if opts.lzw
+    filter = if opts.lzw
       rgbArr = PDFStream.lzwEnc rgbArr
-      filter = "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 3 /Columns #{@width} >>"
+      "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 3 /Columns #{@width} >>"
+    else ''
+    
     opts.parts = ["""
       <<
       /Type /XObject
@@ -375,10 +380,10 @@ class @PDFImage
       return new PDFJPEG pdf, opts
     else if opts.arrBuf? and PDFPNG.identify opts 
       return new PDFPNG pdf, opts  # could end up as PDFImageViaCanvas if unsupported
-    else if opts.tag?
+    else if opts.tag? and opts.tag.width > 0
       return new PDFImageViaCanvas pdf, opts
     else
-      @error = 'No valid JPEG or PNG header in image, and no <img> tag supplied for <canvas> strategy'
+      @error = 'No JPEG or PNG header in image, and <img> tag not supplied, not loaded, or not a browser-supported image'
   
 
 class @PDFFont extends PDFObj

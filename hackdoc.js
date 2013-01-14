@@ -394,23 +394,10 @@ https://github.com/jawj/hackdoc
           alphaArr[alphaPos++] = alpha - (predict ? pixelArr[i - 1] : 0);
         }
       }
-      smaskRef = '';
-      if (alphaTrans) {
-        filter = '';
-        if (opts.lzw) {
-          alphaArr = PDFStream.lzwEnc(alphaArr);
-          filter = "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 1 /Columns " + this.width + " >>";
-        }
-        smaskStream = new PDFObj(pdf, {
-          parts: ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceGray\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + alphaArr.length + filter + "\n>>\nstream\n", alphaArr, "\nendstream"]
-        });
-        smaskRef = "\n/SMask " + smaskStream.ref;
-      }
-      filter = '';
-      if (opts.lzw) {
-        rgbArr = PDFStream.lzwEnc(rgbArr);
-        filter = "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 3 /Columns " + this.width + " >>";
-      }
+      smaskRef = alphaTrans ? (filter = opts.lzw ? (alphaArr = PDFStream.lzwEnc(alphaArr), "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 1 /Columns " + this.width + " >>") : '', smaskStream = new PDFObj(pdf, {
+        parts: ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceGray\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + alphaArr.length + filter + "\n>>\nstream\n", alphaArr, "\nendstream"]
+      }), "\n/SMask " + smaskStream.ref) : '';
+      filter = opts.lzw ? (rgbArr = PDFStream.lzwEnc(rgbArr), "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 3 /Columns " + this.width + " >>") : '';
       opts.parts = ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceRGB\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + rgbArr.length + smaskRef + filter + "\n>>\nstream\n", rgbArr, "\nendstream"];
       PDFImageViaCanvas.__super__.constructor.call(this, pdf, opts);
     }
@@ -449,10 +436,10 @@ https://github.com/jawj/hackdoc
         return new PDFJPEG(pdf, opts);
       } else if ((opts.arrBuf != null) && PDFPNG.identify(opts)) {
         return new PDFPNG(pdf, opts);
-      } else if (opts.tag != null) {
+      } else if ((opts.tag != null) && opts.tag.width > 0) {
         return new PDFImageViaCanvas(pdf, opts);
       } else {
-        this.error = 'No valid JPEG or PNG header in image, and no <img> tag supplied for <canvas> strategy';
+        this.error = 'No JPEG or PNG header in image, and <img> tag not supplied, not loaded, or not a browser-supported image';
       }
     }
 
