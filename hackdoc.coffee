@@ -7,6 +7,11 @@ https://github.com/jawj/hackdoc
 
 # PDF ref: http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf
 
+PDFMetrics.ligatureRegExps = {}
+for fontName, ligs of PDFMetrics.ligatures
+  PDFMetrics.ligatureRegExps[fontName] = for k, v of ligs
+    {re: new RegExp(k, 'g'), lig: v}
+
 class @PDFObj
   constructor: (pdf, opts = {}) ->
     @objNum ?= opts.num ? pdf.nextObjNum()
@@ -562,25 +567,25 @@ class @PDFText
       words.pop()  # since last match always empty
       new Word(w, fontName) for w in words
     
-    constructor: (s, @fontName, opts = {}) ->
-      opts.rep ?= '_'
+    constructor: (s, @fontName, @opts = {}) ->
+      @opts.ligatures ?= yes
       
       @original = ''
       len = s.length
       for i in [0...len]
         c = s.charAt i
-        @original += if PDFText.metrics.codes[c]? and PDFText.metrics.widths[@fontName][c]? then c else opts.rep
+        @original += if PDFMetrics.codes[c]? and PDFMetrics.widths[@fontName][c]? then c else '_'
       
-      @ligaturized = @original
-      for k, v of PDFText.metrics.ligatures[@fontName]  
-        re = new RegExp k, 'g'  # TODO: store these in metrics, so as not to recreate per word
-        @ligaturized = @ligaturized.replace re, v
+      @processed = @original
+      if @opts.ligatures
+        for {re, lig} in PDFMetrics.ligatureRegExps[@fontName]
+          @processed = @processed.replace re, lig
       
     
     toHexString = (s, hex = '<') ->
       len = s.length
       for i in [0...len]
-        hex += PDFText.metrics.codes[s.charAt i]
+        hex += PDFMetrics.codes[s.charAt i]
       hex + '>'
   
   class @Line

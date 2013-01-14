@@ -8,33 +8,53 @@ https://github.com/jawj/hackdoc
 
 
 (function() {
-  var __slice = [].slice,
+  var fontName, k, ligs, v, _ref,
+    __slice = [].slice,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
+  PDFMetrics.ligatureRegExps = {};
+
+  _ref = PDFMetrics.ligatures;
+  for (fontName in _ref) {
+    ligs = _ref[fontName];
+    PDFMetrics.ligatureRegExps[fontName] = (function() {
+      var _results;
+      _results = [];
+      for (k in ligs) {
+        v = ligs[k];
+        _results.push({
+          re: new RegExp(k, 'g'),
+          lig: v
+        });
+      }
+      return _results;
+    })();
+  }
+
   this.PDFObj = (function() {
 
     function PDFObj(pdf, opts) {
-      var part, parts, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4;
+      var part, parts, _i, _len, _ref1, _ref2, _ref3, _ref4, _ref5;
       if (opts == null) {
         opts = {};
       }
-      if ((_ref = this.objNum) == null) {
-        this.objNum = (_ref1 = opts.num) != null ? _ref1 : pdf.nextObjNum();
+      if ((_ref1 = this.objNum) == null) {
+        this.objNum = (_ref2 = opts.num) != null ? _ref2 : pdf.nextObjNum();
       }
-      if ((_ref2 = this.ref) == null) {
+      if ((_ref3 = this.ref) == null) {
         this.ref = "" + this.objNum + " 0 R";
       }
       if (!((opts.parts != null) || (opts.data != null))) {
         return;
       }
-      parts = (_ref3 = opts.parts) != null ? _ref3 : [opts.data];
+      parts = (_ref4 = opts.parts) != null ? _ref4 : [opts.data];
       this.parts = ["\n" + this.objNum + " 0 obj\n"].concat(__slice.call(parts), ["\nendobj\n"]);
       this.length = 0;
-      _ref4 = this.parts;
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        part = _ref4[_i];
+      _ref5 = this.parts;
+      for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
+        part = _ref5[_i];
         this.length += part.length;
       }
       pdf.addObj(this);
@@ -362,11 +382,11 @@ https://github.com/jawj/hackdoc
     __extends(PDFImageViaCanvas, _super);
 
     function PDFImageViaCanvas(pdf, opts) {
-      var alpha, alphaArr, alphaPos, alphaTrans, byteCount, canvas, ctx, filter, i, pixelArr, predict, rgbArr, rgbPos, rowBytes, smaskRef, smaskStream, _i, _ref;
+      var alpha, alphaArr, alphaPos, alphaTrans, byteCount, canvas, ctx, filter, i, pixelArr, predict, rgbArr, rgbPos, rowBytes, smaskRef, smaskStream, _i, _ref1;
       if (opts == null) {
         opts = {};
       }
-      _ref = opts.tag, this.width = _ref.width, this.height = _ref.height;
+      _ref1 = opts.tag, this.width = _ref1.width, this.height = _ref1.height;
       canvas = make({
         tag: 'canvas',
         width: this.width,
@@ -465,7 +485,7 @@ https://github.com/jawj/hackdoc
     function xPDFText() {}
 
     xPDFText.sanitize = function(s, fontName, rep, whitelist) {
-      var c, i, sanitized, _i, _ref;
+      var c, i, sanitized, _i, _ref1;
       if (rep == null) {
         rep = '_';
       }
@@ -473,7 +493,7 @@ https://github.com/jawj/hackdoc
         whitelist = '';
       }
       sanitized = '';
-      for (i = _i = 0, _ref = s.length; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+      for (i = _i = 0, _ref1 = s.length; 0 <= _ref1 ? _i < _ref1 : _i > _ref1; i = 0 <= _ref1 ? ++_i : --_i) {
         c = s.charAt(i);
         sanitized += ((PDFText.metrics.codes[c] != null) && (PDFText.metrics.widths[fontName][c] != null)) || whitelist.indexOf(c) !== -1 ? c : rep;
       }
@@ -481,10 +501,10 @@ https://github.com/jawj/hackdoc
     };
 
     xPDFText.ligaturize = function(s, fontName) {
-      var k, re, v, _ref;
-      _ref = PDFText.metrics.ligatures[fontName];
-      for (k in _ref) {
-        v = _ref[k];
+      var re, _ref1;
+      _ref1 = PDFText.metrics.ligatures[fontName];
+      for (k in _ref1) {
+        v = _ref1[k];
         re = new RegExp(k, 'g');
         s = s.replace(re, v);
       }
@@ -492,11 +512,11 @@ https://github.com/jawj/hackdoc
     };
 
     xPDFText.hexString = function(s, hex) {
-      var i, _i, _ref;
+      var i, _i, _ref1;
       if (hex == null) {
         hex = '<';
       }
-      for (i = _i = 0, _ref = s.length; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+      for (i = _i = 0, _ref1 = s.length; 0 <= _ref1 ? _i < _ref1 : _i > _ref1; i = 0 <= _ref1 ? ++_i : --_i) {
         hex += PDFText.metrics.codes[s.charAt(i)];
       }
       return hex + '>';
@@ -514,7 +534,7 @@ https://github.com/jawj/hackdoc
     };
 
     xPDFText.widthify = function(words, fontName) {
-      var TJData, char, charCount, charWidth, endWidth, i, kernWidth, kerning, midWidth, nextChar, nextWord, nextWordChar, seenSpace, spaceCount, str, widths, word, _i, _j, _len, _ref, _ref1, _results;
+      var TJData, char, charCount, charWidth, endWidth, i, kernWidth, kerning, midWidth, nextChar, nextWord, nextWordChar, seenSpace, spaceCount, str, widths, word, _i, _j, _len, _ref1, _ref2, _results;
       widths = PDFText.metrics.widths[fontName];
       kerning = PDFText.metrics.kerning[fontName];
       _results = [];
@@ -526,7 +546,7 @@ https://github.com/jawj/hackdoc
         midWidth = endWidth = charCount = spaceCount = 0;
         seenSpace = false;
         str = TJData = '';
-        for (i = _j = 0, _ref = word.length - 1; 0 <= _ref ? _j < _ref : _j > _ref; i = 0 <= _ref ? ++_j : --_j) {
+        for (i = _j = 0, _ref1 = word.length - 1; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
           char = word.charAt(i);
           nextChar = word.charAt(i + 1);
           seenSpace || (seenSpace = char === ' ');
@@ -540,7 +560,7 @@ https://github.com/jawj/hackdoc
             spaceCount++;
           }
           str += char;
-          kernWidth = (_ref1 = kerning[char]) != null ? _ref1[nextChar] : void 0;
+          kernWidth = (_ref2 = kerning[char]) != null ? _ref2[nextChar] : void 0;
           if (kernWidth != null) {
             TJData += "" + (PDFText.hexString(str)) + " " + kernWidth + " ";
             str = '';
@@ -574,33 +594,33 @@ https://github.com/jawj/hackdoc
     };
 
     xPDFText.flowPara = function(para, fontSize, opts) {
-      var TJData, charCount, charSpace, charSpaceFactor, charStretch, commands, finishLine, fix, height, i, leading, line, lineData, linesData, minusLSpace, numLines, rSpace, scale, scaledLineWidth, scaledMaxWidth, scaledWidth, spaceCount, stretchFactor, width, willExceedHeight, willWrap, word, wordSpace, wordSpaceFactor, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+      var TJData, charCount, charSpace, charSpaceFactor, charStretch, commands, finishLine, fix, height, i, leading, line, lineData, linesData, minusLSpace, numLines, rSpace, scale, scaledLineWidth, scaledMaxWidth, scaledWidth, spaceCount, stretchFactor, width, willExceedHeight, willWrap, word, wordSpace, wordSpaceFactor, _i, _len, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
       if (opts == null) {
         opts = {};
       }
-      if ((_ref = opts.maxWidth) == null) {
+      if ((_ref1 = opts.maxWidth) == null) {
         opts.maxWidth = Infinity;
       }
-      if ((_ref1 = opts.maxHeight) == null) {
+      if ((_ref2 = opts.maxHeight) == null) {
         opts.maxHeight = Infinity;
       }
-      if ((_ref2 = opts.lineHeight) == null) {
+      if ((_ref3 = opts.lineHeight) == null) {
         opts.lineHeight = 1.3;
       }
-      if ((_ref3 = opts.align) == null) {
+      if ((_ref4 = opts.align) == null) {
         opts.align = 'left';
       }
-      if ((_ref4 = opts.justify) == null) {
+      if ((_ref5 = opts.justify) == null) {
         opts.justify = {
           wordSpaceFactor: 0.45,
           charSpaceFactor: 0.40,
           stretchFactor: 0.15
         };
       }
-      if ((_ref5 = opts.hyphenate) == null) {
+      if ((_ref6 = opts.hyphenate) == null) {
         opts.hyphenate = false;
       }
-      if ((_ref6 = opts.hyphLength) == null) {
+      if ((_ref7 = opts.hyphLength) == null) {
         opts.hyphLength = 0.8;
       }
       scale = 1000 / fontSize;
@@ -678,7 +698,7 @@ https://github.com/jawj/hackdoc
             wordSpace = charSpace = 0;
             charStretch = 100;
           } else {
-            _ref7 = opts.justify, wordSpaceFactor = _ref7.wordSpaceFactor, charSpaceFactor = _ref7.charSpaceFactor, stretchFactor = _ref7.stretchFactor;
+            _ref8 = opts.justify, wordSpaceFactor = _ref8.wordSpaceFactor, charSpaceFactor = _ref8.charSpaceFactor, stretchFactor = _ref8.stretchFactor;
             if (spaceCount === 0) {
               wordSpace = 0;
               charSpaceFactor *= 1 / (1 - wordSpaceFactor);
@@ -738,26 +758,25 @@ https://github.com/jawj/hackdoc
       };
 
       function Word(s, fontName, opts) {
-        var c, i, k, len, re, v, _i, _ref, _ref1;
+        var c, i, len, lig, re, _base, _i, _j, _len, _ref1, _ref2, _ref3;
         this.fontName = fontName;
-        if (opts == null) {
-          opts = {};
-        }
-        if ((_ref = opts.rep) == null) {
-          opts.rep = '_';
+        this.opts = opts != null ? opts : {};
+        if ((_ref1 = (_base = this.opts).ligatures) == null) {
+          _base.ligatures = true;
         }
         this.original = '';
         len = s.length;
         for (i = _i = 0; 0 <= len ? _i < len : _i > len; i = 0 <= len ? ++_i : --_i) {
           c = s.charAt(i);
-          this.original += (PDFText.metrics.codes[c] != null) && (PDFText.metrics.widths[this.fontName][c] != null) ? c : opts.rep;
+          this.original += (PDFMetrics.codes[c] != null) && (PDFMetrics.widths[this.fontName][c] != null) ? c : '_';
         }
-        this.ligaturized = this.original;
-        _ref1 = PDFText.metrics.ligatures[this.fontName];
-        for (k in _ref1) {
-          v = _ref1[k];
-          re = new RegExp(k, 'g');
-          this.ligaturized = this.ligaturized.replace(re, v);
+        this.processed = this.original;
+        if (this.opts.ligatures) {
+          _ref2 = PDFMetrics.ligatureRegExps[this.fontName];
+          for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
+            _ref3 = _ref2[_j], re = _ref3.re, lig = _ref3.lig;
+            this.processed = this.processed.replace(re, lig);
+          }
         }
       }
 
@@ -768,7 +787,7 @@ https://github.com/jawj/hackdoc
         }
         len = s.length;
         for (i = _i = 0; 0 <= len ? _i < len : _i > len; i = 0 <= len ? ++_i : --_i) {
-          hex += PDFText.metrics.codes[s.charAt(i)];
+          hex += PDFMetrics.codes[s.charAt(i)];
         }
         return hex + '>';
       };
@@ -818,17 +837,17 @@ https://github.com/jawj/hackdoc
       this.objs = [];
       this.id = HackDoc.randomId();
       this.appending = typeof basePDFArrBufOrVersion === 'string' ? (this.basePDF = new Blob(["%PDF-" + basePDFArrBufOrVersion + "\n\u0080\u07ff\n"]), this.baseLen = this.basePDF.size, this.nextFreeObjNum = 1, false) : (this.basePDF = new Uint8Array(basePDFArrBufOrVersion), this.baseLen = this.basePDF.length, trailerPos = function(pdf) {
-        var a, char, e, i, l, pos, r, t, _ref;
-        _ref = (function() {
-          var _i, _len, _ref, _results;
-          _ref = 'traile'.split('');
+        var a, char, e, i, l, pos, r, t, _ref1;
+        _ref1 = (function() {
+          var _i, _len, _ref1, _results;
+          _ref1 = 'traile'.split('');
           _results = [];
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            char = _ref[_i];
+          for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+            char = _ref1[_i];
             _results.push(char.charCodeAt(0));
           }
           return _results;
-        })(), t = _ref[0], r = _ref[1], a = _ref[2], i = _ref[3], l = _ref[4], e = _ref[5];
+        })(), t = _ref1[0], r = _ref1[1], a = _ref1[2], i = _ref1[3], l = _ref1[4], e = _ref1[5];
         pos = pdf.length;
         while (--pos >= 6) {
           if (pdf[pos] === r && pdf[pos - 1] === e && pdf[pos - 2] === l && pdf[pos - 3] === i && pdf[pos - 4] === a && pdf[pos - 5] === r && pdf[pos - 6] === t) {
@@ -847,25 +866,25 @@ https://github.com/jawj/hackdoc
     };
 
     HackDoc.prototype.toBlob = function() {
-      var allParts, bodyParts, consecutiveObjSets, currentSet, lastObjNum, o, objOffset, os, p, trailer, trailerPart, u8, xref, _i, _j, _k, _len, _len1, _len2, _ref, _ref1;
+      var allParts, bodyParts, consecutiveObjSets, currentSet, lastObjNum, o, objOffset, os, p, trailer, trailerPart, u8, xref, _i, _j, _k, _len, _len1, _len2, _ref1, _ref2;
       this.objs.sort(function(a, b) {
         return a.objNum - b.objNum;
       });
-      bodyParts = (_ref = []).concat.apply(_ref, (function() {
-        var _i, _len, _ref, _results;
-        _ref = this.objs;
+      bodyParts = (_ref1 = []).concat.apply(_ref1, (function() {
+        var _i, _len, _ref1, _results;
+        _ref1 = this.objs;
         _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          o = _ref[_i];
+        for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+          o = _ref1[_i];
           _results.push(o.parts);
         }
         return _results;
       }).call(this));
       consecutiveObjSets = [];
       lastObjNum = null;
-      _ref1 = this.objs;
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        o = _ref1[_i];
+      _ref2 = this.objs;
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        o = _ref2[_i];
         if (!((lastObjNum != null) && o.objNum === lastObjNum + 1)) {
           consecutiveObjSets.push((currentSet = []));
         }
