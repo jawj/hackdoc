@@ -397,7 +397,7 @@ class @PDFFont extends PDFObj
     super pdf, opts
   
 
-class @PDFText
+class @xPDFText
   @sanitize = (s, fontName, rep = '_', whitelist = '') ->
     sanitized = ''
     for i in [0...s.length]
@@ -550,8 +550,35 @@ class @PDFText
     {commands, para, width, height}
   
 
-class @PDFTxt
+class @PDFText
   class @Word
+    @arrayFromText = (s, fontName) -> 
+      words = s.match /[^ —–-]*[—–-]? */g
+      words.pop()  # since last match always empty
+      new Word(w, fontName) for w in words
+    
+    constructor: (s, @fontName, opts = {}) ->
+      opts.rep ?= '_'
+      
+      @original = ''
+      len = s.length
+      for i in [0...len]
+        c = s.charAt i
+        @original += if PDFText.metrics.codes[c]? and PDFText.metrics.widths[@fontName][c]? then c else opts.rep
+      
+      @ligaturized = @original
+      for k, v of PDFText.metrics.ligatures[@fontName]  
+        re = new RegExp k, 'g'  # TODO: store these in metrics, so as not to recreate per word
+        @ligaturized = @ligaturized.replace re, v
+      
+    
+    toHexString = (s, hex = '<') ->
+      len = s.length
+      for i in [0...len]
+        hex += PDFText.metrics.codes[s.charAt i]
+      hex + '>'
+  
+  class @Line
   
 
 class @HackDoc

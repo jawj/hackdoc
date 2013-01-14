@@ -473,11 +473,11 @@ https://github.com/jawj/hackdoc
 
   })(PDFObj);
 
-  this.PDFText = (function() {
+  this.xPDFText = (function() {
 
-    function PDFText() {}
+    function xPDFText() {}
 
-    PDFText.sanitize = function(s, fontName, rep, whitelist) {
+    xPDFText.sanitize = function(s, fontName, rep, whitelist) {
       var c, i, sanitized, _i, _ref;
       if (rep == null) {
         rep = '_';
@@ -493,7 +493,7 @@ https://github.com/jawj/hackdoc
       return sanitized;
     };
 
-    PDFText.ligaturize = function(s, fontName) {
+    xPDFText.ligaturize = function(s, fontName) {
       var k, re, v, _ref;
       _ref = PDFText.metrics.ligatures[fontName];
       for (k in _ref) {
@@ -504,7 +504,7 @@ https://github.com/jawj/hackdoc
       return s;
     };
 
-    PDFText.hexString = function(s, hex) {
+    xPDFText.hexString = function(s, hex) {
       var i, _i, _ref;
       if (hex == null) {
         hex = '<';
@@ -515,18 +515,18 @@ https://github.com/jawj/hackdoc
       return hex + '>';
     };
 
-    PDFText.paragraphize = function(s) {
+    xPDFText.paragraphize = function(s) {
       return s.split(/\r\n|\r|\n/);
     };
 
-    PDFText.wordify = function(s) {
+    xPDFText.wordify = function(s) {
       var words;
       words = s.match(/[^ —–-]*[—–-]? */g);
       words.pop();
       return words;
     };
 
-    PDFText.widthify = function(words, fontName) {
+    xPDFText.widthify = function(words, fontName) {
       var TJData, char, charCount, charWidth, endWidth, i, kernWidth, kerning, midWidth, nextChar, nextWord, nextWordChar, seenSpace, spaceCount, str, widths, word, _i, _j, _len, _ref, _ref1, _results;
       widths = PDFText.metrics.widths[fontName];
       kerning = PDFText.metrics.kerning[fontName];
@@ -577,7 +577,7 @@ https://github.com/jawj/hackdoc
       return _results;
     };
 
-    PDFText.preprocessPara = function(s, fontName, ligatures) {
+    xPDFText.preprocessPara = function(s, fontName, ligatures) {
       var ligaturize;
       if (ligatures == null) {
         ligatures = true;
@@ -586,7 +586,7 @@ https://github.com/jawj/hackdoc
       return PDFText.widthify(PDFText.wordify(ligaturize(PDFText.sanitize(s, fontName), fontName)), fontName);
     };
 
-    PDFText.flowPara = function(para, fontSize, opts) {
+    xPDFText.flowPara = function(para, fontSize, opts) {
       var TJData, charCount, charSpace, charSpaceFactor, charStretch, commands, finishLine, fix, height, i, leading, line, lineData, linesData, minusLSpace, numLines, rSpace, scale, scaledLineWidth, scaledMaxWidth, scaledWidth, spaceCount, stretchFactor, width, willExceedHeight, willWrap, word, wordSpace, wordSpaceFactor, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
       if (opts == null) {
         opts = {};
@@ -727,25 +727,80 @@ https://github.com/jawj/hackdoc
       };
     };
 
-    return PDFText;
+    return xPDFText;
 
   })();
 
-  this.PDFTxt = (function() {
+  this.PDFText = (function() {
 
-    function PDFTxt() {}
+    function PDFText() {}
 
-    PDFTxt.Word = (function() {
+    PDFText.Word = (function() {
+      var toHexString;
 
-      function Word() {}
+      Word.arrayFromText = function(s, fontName) {
+        var w, words, _i, _len, _results;
+        words = s.match(/[^ —–-]*[—–-]? */g);
+        words.pop();
+        _results = [];
+        for (_i = 0, _len = words.length; _i < _len; _i++) {
+          w = words[_i];
+          _results.push(new Word(w, fontName));
+        }
+        return _results;
+      };
+
+      function Word(s, fontName, opts) {
+        var c, i, k, len, re, v, _i, _ref, _ref1;
+        this.fontName = fontName;
+        if (opts == null) {
+          opts = {};
+        }
+        if ((_ref = opts.rep) == null) {
+          opts.rep = '_';
+        }
+        this.original = '';
+        len = s.length;
+        for (i = _i = 0; 0 <= len ? _i < len : _i > len; i = 0 <= len ? ++_i : --_i) {
+          c = s.charAt(i);
+          this.original += (PDFText.metrics.codes[c] != null) && (PDFText.metrics.widths[this.fontName][c] != null) ? c : opts.rep;
+        }
+        this.ligaturized = this.original;
+        _ref1 = PDFText.metrics.ligatures[this.fontName];
+        for (k in _ref1) {
+          v = _ref1[k];
+          re = new RegExp(k, 'g');
+          this.ligaturized = this.ligaturized.replace(re, v);
+        }
+      }
+
+      toHexString = function(s, hex) {
+        var i, len, _i;
+        if (hex == null) {
+          hex = '<';
+        }
+        len = s.length;
+        for (i = _i = 0; 0 <= len ? _i < len : _i > len; i = 0 <= len ? ++_i : --_i) {
+          hex += PDFText.metrics.codes[s.charAt(i)];
+        }
+        return hex + '>';
+      };
 
       return Word;
 
     })();
 
-    return PDFTxt;
+    PDFText.Line = (function() {
 
-  })();
+      function Line() {}
+
+      return Line;
+
+    })();
+
+    return PDFText;
+
+  }).call(this);
 
   this.HackDoc = (function() {
 
