@@ -729,14 +729,14 @@ https://github.com/jawj/hackdoc
         return s.split(/\r\n|\r|\n/);
       };
 
-      Word.wordsFromPara = function(s, fontName) {
+      Word.wordsFromPara = function(s, fontName, ligatures) {
         var i, w, words, _i, _len, _results;
         words = s.match(/[^ —–-]*[—–-]? */g);
         words.pop();
         _results = [];
         for (i = _i = 0, _len = words.length; _i < _len; i = ++_i) {
           w = words[i];
-          _results.push(new Word(w, words[i + 1], fontName));
+          _results.push(new Word(w, words[i + 1], fontName, ligatures));
         }
         return _results;
       };
@@ -753,20 +753,20 @@ https://github.com/jawj/hackdoc
         return hex + '>';
       };
 
-      function Word(s, after, fontName, ligatures) {
-        var c, i, len, lig, ligStr, rawStr, re, _i, _j, _len, _ref, _ref1;
+      function Word(str, after, fontName, ligatures) {
+        var c, char, charWidth, i, kernWidth, kerning, lastCharIndex, len, lig, ligStr, nextChar, rawStr, re, seenSpace, widths, word, _i, _j, _k, _len, _ref, _ref1, _ref2, _ref3, _ref4;
         this.fontName = fontName;
         if (ligatures == null) {
           ligatures = true;
         }
         rawStr = '';
-        len = s.length;
+        len = str.length;
         for (i = _i = 0; 0 <= len ? _i < len : _i > len; i = 0 <= len ? ++_i : --_i) {
-          c = s.charAt(i);
+          c = str.charAt(i);
           rawStr += (PDFMetrics.codes[c] != null) && (PDFMetrics.widths[this.fontName][c] != null) ? c : '_';
         }
+        ligStr = rawStr;
         if (ligatures) {
-          ligStr = rawStr;
           _ref = PDFMetrics.ligatureRegExps[this.fontName];
           for (_j = 0, _len = _ref.length; _j < _len; _j++) {
             _ref1 = _ref[_j], re = _ref1.re, lig = _ref1.lig;
@@ -780,18 +780,14 @@ https://github.com/jawj/hackdoc
         if (after != null) {
           this.charAfter = after.charAt(0);
         }
-        this.calcWidth();
-      }
-
-      Word.prototype.calcWidth = function() {
-        var char, charWidth, i, kernWidth, kerning, nextChar, seenSpace, str, widths, word, _i, _ref, _ref1, _ref2, _ref3;
-        word = ((_ref = this.ligStr) != null ? _ref : this.rawStr) + ((_ref1 = this.charAfter) != null ? _ref1 : ' ');
+        word = ((_ref2 = this.ligStr) != null ? _ref2 : this.rawStr) + ((_ref3 = this.charAfter) != null ? _ref3 : ' ');
         this.midWidth = this.endWidth = this.charCount = this.spaceCount = 0;
         this.commands = str = '';
         seenSpace = false;
         widths = PDFMetrics.widths[fontName];
         kerning = PDFMetrics.kerning[fontName];
-        for (i = _i = 0, _ref2 = word.length - 1; 0 <= _ref2 ? _i < _ref2 : _i > _ref2; i = 0 <= _ref2 ? ++_i : --_i) {
+        lastCharIndex = word.length - 1;
+        for (i = _k = 0; 0 <= lastCharIndex ? _k < lastCharIndex : _k > lastCharIndex; i = 0 <= lastCharIndex ? ++_k : --_k) {
           char = word.charAt(i);
           nextChar = word.charAt(i + 1);
           seenSpace || (seenSpace = char === ' ');
@@ -805,7 +801,7 @@ https://github.com/jawj/hackdoc
             this.spaceCount++;
           }
           str += char;
-          kernWidth = (_ref3 = kerning[char]) != null ? _ref3[nextChar] : void 0;
+          kernWidth = (_ref4 = kerning[char]) != null ? _ref4[nextChar] : void 0;
           if (kernWidth != null) {
             this.commands += "" + (this.constructor.hexify(str)) + " " + kernWidth + " ";
             str = '';
@@ -816,11 +812,79 @@ https://github.com/jawj/hackdoc
           }
         }
         if (str.length > 0) {
-          return this.commands += "" + (this.constructor.hexify(str)) + " ";
+          this.commands += "" + (this.constructor.hexify(str)) + " ";
+        }
+      }
+
+      return Word;
+
+    })();
+
+    PDFText.Flow = (function() {
+
+      Flow.prototype.defaults = {
+        maxWidth: Infinity,
+        maxHeight: Infinity,
+        lineHeight: 1.3,
+        align: 'left',
+        justifyOpts: {
+          stretchFactor: 0.2,
+          charSpaceFactor: 0
         }
       };
 
-      return Word;
+      function Flow(words, fontSize, opts) {
+        var charCount, finishLine, fix, leading, lineWords, lines, scale, scaledLineWidth, scaledMaxWidth, scaledWidth, spaceCount, willExceedHeight, willWrap, word;
+        opts = extend({}, defaults, opts);
+        scale = 1000 / fontSize;
+        words = words.slice(0);
+        scaledMaxWidth = opts.maxWidth * scale;
+        leading = fontSize * opts.lineHeight;
+        this.height = scaledWidth = scaledLineWidth = charCount = spaceCount = 0;
+        lineWords = [];
+        lines = [];
+        fix = function(n) {
+          return n.toFixed(3).replace(/\.?0+$/, '');
+        };
+        finishLine = function() {
+          var lastWord;
+          lastWord = lineWords[lineWords.length - 1];
+          scaledLineWidth += lastWord.endWidth - lastWord.midWidth;
+          charCount -= lastWord.spaceCount;
+          spaceCount -= lastWord.spaceCount;
+          lines.push(new Line(lineWords, scaledLineWidth, charCount, spaceCount));
+          return this.height += leading;
+        };
+        while (words.length > 0) {
+          word = para.shift();
+          willWrap = scaledLineWidth + word.endWidth > scaledMaxWidth && line.length > 0;
+          if (willWrap) {
+            finishLine();
+            willExceedHeight = height + leading > opts.maxHeight;
+            if (willExceedHeight) {
+              para.unshift(word);
+              break;
+            } else {
+              lineWords = [];
+              scaledLineWidth = charCount = spaceCount = 0;
+            }
+          }
+          lineWords.push(word);
+          scaledLineWidth += word.midWidth;
+          charCount += word.charCount;
+          spaceCount += word.spaceCount;
+          if (words.length === 0) {
+            finishLine();
+          }
+        }
+        this.remainingWords = words;
+        this.width = scaledWidth / scale;
+        if (opts.align === 'full' && scaledMaxWidth / scale < this.width) {
+          this.width = scaledMaxWidth / scale;
+        }
+      }
+
+      return Flow;
 
     })();
 

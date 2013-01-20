@@ -558,10 +558,10 @@ class @xPDFText
 class @PDFText
   class @Word
     @parasFromText = (s) -> s.split /\r\n|\r|\n/
-    @wordsFromPara = (s, fontName) -> 
+    @wordsFromPara = (s, fontName, ligatures) -> 
       words = s.match /[^ —–-]*[—–-]? */g
       words.pop()  # since last match always empty
-      new Word(w, words[i + 1], fontName) for w, i in words
+      new Word(w, words[i + 1], fontName, ligatures) for w, i in words
     
     @hexify = (s, hex = '<') ->
       len = s.length
@@ -569,25 +569,22 @@ class @PDFText
         hex += PDFMetrics.codes[s.charAt i]
       hex + '>'
     
-    constructor: (s, after, @fontName, ligatures = yes) ->
+    constructor: (str, after, @fontName, ligatures = yes) ->
       rawStr = ''
-      len = s.length
+      len = str.length
       for i in [0...len]
-        c = s.charAt i
+        c = str.charAt i
         rawStr += if PDFMetrics.codes[c]? and PDFMetrics.widths[@fontName][c]? then c else '_'
       
+      ligStr = rawStr
       if ligatures
-        ligStr = rawStr
         for {re, lig} in PDFMetrics.ligatureRegExps[@fontName]
           ligStr = ligStr.replace re, lig
       
       @rawStr = rawStr
-      @ligStr = ligStr unless ligStr is rawStr  # only store if different (unusual)
+      @ligStr = ligStr if ligStr isnt rawStr  # only store if different (unusual)
       @charAfter = after.charAt 0 if after?
       
-      @calcWidth()
-    
-    calcWidth: ->
       word = (@ligStr ? @rawStr) + (@charAfter ? ' ')
       @midWidth = @endWidth = @charCount = @spaceCount = 0
       @commands = str = ''
@@ -595,7 +592,8 @@ class @PDFText
       widths = PDFMetrics.widths[fontName]
       kerning = PDFMetrics.kerning[fontName]
       
-      for i in [0...(word.length - 1)]  # exclude final char, which is part of next word (or a space)
+      lastCharIndex = word.length - 1  # exclude final char, which is part of next word (or a space)
+      for i in [0...lastCharIndex]  
         char = word.charAt i
         nextChar = word.charAt(i + 1)
         seenSpace ||= char is ' '
@@ -614,6 +612,60 @@ class @PDFText
         
       @commands += "#{@constructor.hexify str} " if str.length > 0
     
+  
+  class @Flow
+    defaults: 
+      maxWidth:       Infinity
+      maxHeight:      Infinity
+      lineHeight:     1.3
+      align:          'left'  # or 'right', 'centre', 'full'
+      justifyOpts:
+        # wordSpaceFactor:  0.8  # = 1 - stretchFactor - charSpaceFactor
+        stretchFactor:    0.2
+        charSpaceFactor:  0    # seems generally frowned on
+      
+    constructor: (words, fontSize, opts) ->
+      opts = extend {}, defaults, opts
+      scale = 1000 / fontSize
+      words = words[..]  # copy
+      scaledMaxWidth = opts.maxWidth * scale
+      leading = fontSize * opts.lineHeight
+      @height = scaledWidth = scaledLineWidth = charCount = spaceCount = 0
+      lineWords = []
+      lines = []
+      
+      fix = (n) -> n.toFixed(3).replace /\.?0+$/, ''
+      finishLine = ->
+        lastWord = lineWords[lineWords.length - 1]
+        scaledLineWidth += lastWord.endWidth - lastWord.midWidth
+        charCount -= lastWord.spaceCount
+        spaceCount -= lastWord.spaceCount
+        lines.push new Line lineWords, scaledLineWidth, charCount, spaceCount
+        @height += leading
+        
+      while words.length > 0
+        word = para.shift()
+        willWrap = scaledLineWidth + word.endWidth > scaledMaxWidth and line.length > 0
+        if willWrap
+          finishLine()
+          willExceedHeight = height + leading > opts.maxHeight
+          if willExceedHeight
+            para.unshift word
+            break
+          else
+            lineWords = []
+            scaledLineWidth = charCount = spaceCount = 0
+        
+        lineWords.push word
+        scaledLineWidth += word.midWidth
+        charCount += word.charCount
+        spaceCount += word.spaceCount
+        
+        finishLine() if words.length is 0
+        
+      @remainingWords = words
+      @width = scaledWidth / scale
+      @width = scaledMaxWidth / scale if opts.align is 'full' and scaledMaxWidth / scale < @width
   
   class @Line
     constructor: ->

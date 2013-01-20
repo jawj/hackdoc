@@ -1,6 +1,7 @@
 
-@extend = (dest, src) -> 
-  (dest[k] = v) for k, v of src
+@extend = (dest, srcs...) ->
+  for src in srcs
+    (dest[k] = v) for k, v of src
   dest
 
 @w = (str) -> str.split /\s+/
