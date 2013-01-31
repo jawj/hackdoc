@@ -22,23 +22,19 @@ class @PDFObj
 class @PDFStream extends PDFObj
   @lzwEnc = (input, earlyChange = 1) ->
     w = nextCode = dict = maxValueWithBits = null  # scope
+    inString = typeof input is 'string'
     output = new Uint8Array input.length
     allBitsWritten = 0
     bitsPerValue = 9  # used to write CLEAR in first call to clear()
     keyPrefix = '#'   # so that compressing repeated 'hasOwnProperty', '__proto__' etc. is OK
-    
-    read = if typeof input is 'string'
-      (pos) -> input.charAt pos
-    else
-      (pos) -> String.fromCharCode input[pos]
     
     write = (value) ->  # writes 9- to 12-bit values
       valueBitsWritten = 0
       while valueBitsWritten < bitsPerValue
         bytePos = Math.floor(allBitsWritten / 8)
         bitPos = allBitsWritten % 8
-        if bytePos is output.length
-          newOutput = new Uint8Array (output.length * 2)
+        if bytePos is output.length  # we're overflowing our ArrayBuffer, so make a bigger one
+          newOutput = new Uint8Array (output.length * 1.5)
           newOutput.set output
           output = newOutput
         if bitPos > 0  # writing at right of byte
@@ -71,7 +67,7 @@ class @PDFStream extends PDFObj
     
     len = input.length
     for i in [0...len]
-      c = read i
+      c = if inString then input.charAt i else String.fromCharCode input[i]
       wc = w + c
       kpwc = keyPrefix + wc
       if dict.hasOwnProperty kpwc
@@ -625,14 +621,14 @@ class @PDFText
         charSpaceFactor:  0    # seems generally frowned on
       
     constructor: (words, fontSize, opts) ->
-      opts = extend {}, defaults, opts
+      @opts = extend {}, defaults, opts
       scale = 1000 / fontSize
       words = words[..]  # copy
-      scaledMaxWidth = opts.maxWidth * scale
-      leading = fontSize * opts.lineHeight
+      scaledMaxWidth = @opts.maxWidth * scale
+      leading = fontSize * @opts.lineHeight
       @height = scaledWidth = scaledLineWidth = charCount = spaceCount = 0
       lineWords = []
-      lines = []
+      @lines = []
       
       fix = (n) -> n.toFixed(3).replace /\.?0+$/, ''
       finishLine = ->
@@ -640,7 +636,7 @@ class @PDFText
         scaledLineWidth += lastWord.endWidth - lastWord.midWidth
         charCount -= lastWord.spaceCount
         spaceCount -= lastWord.spaceCount
-        lines.push new Line lineWords, scaledLineWidth, charCount, spaceCount
+        @lines.push new Line lineWords, scaledLineWidth, charCount, spaceCount
         @height += leading
         
       while words.length > 0
@@ -648,7 +644,7 @@ class @PDFText
         willWrap = scaledLineWidth + word.endWidth > scaledMaxWidth and line.length > 0
         if willWrap
           finishLine()
-          willExceedHeight = height + leading > opts.maxHeight
+          willExceedHeight = height + leading > @opts.maxHeight
           if willExceedHeight
             para.unshift word
             break
@@ -665,13 +661,42 @@ class @PDFText
         
       @remainingWords = words
       @width = scaledWidth / scale
-      @width = scaledMaxWidth / scale if opts.align is 'full' and scaledMaxWidth / scale < @width
+      @width = scaledMaxWidth / scale if @opts.align is 'full' and scaledMaxWidth / scale < @width
+     
+    toCommands: ->
+      "#{fix leading} TL 0 Tw 0 Tc 100 Tz\n" + (line for line in @lines).join "\n"
   
   class @Line
-    constructor: ->
+    constructor: (@words, @scaledWidth, @charCount, @spaceCount) ->
       
       
     toCommands: ->
+      scaledWidth = 0
+      {line, scaledLineWidth, charCount, spaceCount} = lineData
+      scaledWidth = scaledLineWidth if scaledLineWidth > scaledWidth
+      rSpace = scaledMaxWidth - scaledLineWidth
+      minusLSpace = switch opts.align
+        when 'right' then fix(- rSpace) + ' '
+        when 'centre', 'center' then fix(- rSpace / 2) + ' '
+        else ''  # left and full
+      if opts.align is 'full'
+        if i is numLines - 1 and rSpace >= 0  # do nothing to last line unless too long
+          wordSpace = charSpace = 0
+          charStretch = 100
+        else
+          {wordSpaceFactor, charSpaceFactor, stretchFactor} = opts.justify
+          if spaceCount is 0  # reapportion factors if there are no spaces (avoids / 0)
+            wordSpace = 0
+            charSpaceFactor *= 1 / (1 - wordSpaceFactor)
+            stretchFactor   *= 1 / (1 - wordSpaceFactor)
+          else
+            wordSpace = wordSpaceFactor * rSpace / spaceCount / scale
+          charSpace = charSpaceFactor * rSpace / (charCount - 1) / scale
+          charStretch = 100 / (1 - (rSpace * stretchFactor / scaledMaxWidth))
+        commands += "#{fix wordSpace} Tw #{fix charSpace} Tc #{fix charStretch} Tz "
+      
+      TJData = (word.TJData for word in line)
+      commands += "[ #{minusLSpace}#{TJData.join('').replace /> </g, ''}] TJ T*\n"
 
 class @HackDoc
   @zeroPad = (n, len) ->

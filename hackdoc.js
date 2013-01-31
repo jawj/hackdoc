@@ -50,20 +50,16 @@ https://github.com/jawj/hackdoc
     __extends(PDFStream, _super);
 
     PDFStream.lzwEnc = function(input, earlyChange) {
-      var allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, i, keyPrefix, kpwc, len, maxValueWithBits, nextCode, output, read, w, wc, write, _i;
+      var allBitsWritten, bitsPerValue, bytesUsed, c, clear, dict, i, inString, keyPrefix, kpwc, len, maxValueWithBits, nextCode, output, w, wc, write, _i;
       if (earlyChange == null) {
         earlyChange = 1;
       }
       w = nextCode = dict = maxValueWithBits = null;
+      inString = typeof input === 'string';
       output = new Uint8Array(input.length);
       allBitsWritten = 0;
       bitsPerValue = 9;
       keyPrefix = '#';
-      read = typeof input === 'string' ? function(pos) {
-        return input.charAt(pos);
-      } : function(pos) {
-        return String.fromCharCode(input[pos]);
-      };
       write = function(value) {
         var bitPos, bitsToWrite, bytePos, newOutput, valueBitsWritten, writeValue;
         valueBitsWritten = 0;
@@ -71,7 +67,7 @@ https://github.com/jawj/hackdoc
           bytePos = Math.floor(allBitsWritten / 8);
           bitPos = allBitsWritten % 8;
           if (bytePos === output.length) {
-            newOutput = new Uint8Array(output.length * 2);
+            newOutput = new Uint8Array(output.length * 1.5);
             newOutput.set(output);
             output = newOutput;
           }
@@ -107,7 +103,7 @@ https://github.com/jawj/hackdoc
       clear();
       len = input.length;
       for (i = _i = 0; 0 <= len ? _i < len : _i > len; i = 0 <= len ? ++_i : --_i) {
-        c = read(i);
+        c = inString ? input.charAt(i) : String.fromCharCode(input[i]);
         wc = w + c;
         kpwc = keyPrefix + wc;
         if (dict.hasOwnProperty(kpwc)) {
@@ -834,15 +830,15 @@ https://github.com/jawj/hackdoc
       };
 
       function Flow(words, fontSize, opts) {
-        var charCount, finishLine, fix, leading, lineWords, lines, scale, scaledLineWidth, scaledMaxWidth, scaledWidth, spaceCount, willExceedHeight, willWrap, word;
-        opts = extend({}, defaults, opts);
+        var charCount, finishLine, fix, leading, lineWords, scale, scaledLineWidth, scaledMaxWidth, scaledWidth, spaceCount, willExceedHeight, willWrap, word;
+        this.opts = extend({}, defaults, opts);
         scale = 1000 / fontSize;
         words = words.slice(0);
-        scaledMaxWidth = opts.maxWidth * scale;
-        leading = fontSize * opts.lineHeight;
+        scaledMaxWidth = this.opts.maxWidth * scale;
+        leading = fontSize * this.opts.lineHeight;
         this.height = scaledWidth = scaledLineWidth = charCount = spaceCount = 0;
         lineWords = [];
-        lines = [];
+        this.lines = [];
         fix = function(n) {
           return n.toFixed(3).replace(/\.?0+$/, '');
         };
@@ -852,7 +848,7 @@ https://github.com/jawj/hackdoc
           scaledLineWidth += lastWord.endWidth - lastWord.midWidth;
           charCount -= lastWord.spaceCount;
           spaceCount -= lastWord.spaceCount;
-          lines.push(new Line(lineWords, scaledLineWidth, charCount, spaceCount));
+          this.lines.push(new Line(lineWords, scaledLineWidth, charCount, spaceCount));
           return this.height += leading;
         };
         while (words.length > 0) {
@@ -860,7 +856,7 @@ https://github.com/jawj/hackdoc
           willWrap = scaledLineWidth + word.endWidth > scaledMaxWidth && line.length > 0;
           if (willWrap) {
             finishLine();
-            willExceedHeight = height + leading > opts.maxHeight;
+            willExceedHeight = height + leading > this.opts.maxHeight;
             if (willExceedHeight) {
               para.unshift(word);
               break;
@@ -879,10 +875,24 @@ https://github.com/jawj/hackdoc
         }
         this.remainingWords = words;
         this.width = scaledWidth / scale;
-        if (opts.align === 'full' && scaledMaxWidth / scale < this.width) {
+        if (this.opts.align === 'full' && scaledMaxWidth / scale < this.width) {
           this.width = scaledMaxWidth / scale;
         }
       }
+
+      Flow.prototype.toCommands = function() {
+        var line;
+        return ("" + (fix(leading)) + " TL 0 Tw 0 Tc 100 Tz\n") + ((function() {
+          var _i, _len, _ref, _results;
+          _ref = this.lines;
+          _results = [];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            line = _ref[_i];
+            _results.push(line);
+          }
+          return _results;
+        }).call(this)).join("\n");
+      };
 
       return Flow;
 
@@ -890,9 +900,61 @@ https://github.com/jawj/hackdoc
 
     PDFText.Line = (function() {
 
-      function Line() {}
+      function Line(words, scaledWidth, charCount, spaceCount) {
+        this.words = words;
+        this.scaledWidth = scaledWidth;
+        this.charCount = charCount;
+        this.spaceCount = spaceCount;
+      }
 
-      Line.prototype.toCommands = function() {};
+      Line.prototype.toCommands = function() {
+        var TJData, charCount, charSpace, charSpaceFactor, charStretch, line, minusLSpace, rSpace, scaledLineWidth, scaledWidth, spaceCount, stretchFactor, word, wordSpace, wordSpaceFactor, _ref;
+        scaledWidth = 0;
+        line = lineData.line, scaledLineWidth = lineData.scaledLineWidth, charCount = lineData.charCount, spaceCount = lineData.spaceCount;
+        if (scaledLineWidth > scaledWidth) {
+          scaledWidth = scaledLineWidth;
+        }
+        rSpace = scaledMaxWidth - scaledLineWidth;
+        minusLSpace = (function() {
+          switch (opts.align) {
+            case 'right':
+              return fix(-rSpace) + ' ';
+            case 'centre':
+            case 'center':
+              return fix(-rSpace / 2) + ' ';
+            default:
+              return '';
+          }
+        })();
+        if (opts.align === 'full') {
+          if (i === numLines - 1 && rSpace >= 0) {
+            wordSpace = charSpace = 0;
+            charStretch = 100;
+          } else {
+            _ref = opts.justify, wordSpaceFactor = _ref.wordSpaceFactor, charSpaceFactor = _ref.charSpaceFactor, stretchFactor = _ref.stretchFactor;
+            if (spaceCount === 0) {
+              wordSpace = 0;
+              charSpaceFactor *= 1 / (1 - wordSpaceFactor);
+              stretchFactor *= 1 / (1 - wordSpaceFactor);
+            } else {
+              wordSpace = wordSpaceFactor * rSpace / spaceCount / scale;
+            }
+            charSpace = charSpaceFactor * rSpace / (charCount - 1) / scale;
+            charStretch = 100 / (1 - (rSpace * stretchFactor / scaledMaxWidth));
+          }
+          commands += "" + (fix(wordSpace)) + " Tw " + (fix(charSpace)) + " Tc " + (fix(charStretch)) + " Tz ";
+        }
+        TJData = (function() {
+          var _i, _len, _results;
+          _results = [];
+          for (_i = 0, _len = line.length; _i < _len; _i++) {
+            word = line[_i];
+            _results.push(word.TJData);
+          }
+          return _results;
+        })();
+        return commands += "[ " + minusLSpace + (TJData.join('').replace(/> </g, '')) + "] TJ T*\n";
+      };
 
       return Line;
 
