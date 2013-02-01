@@ -93,10 +93,10 @@ class @PDFStream extends PDFObj
     # opts: minify, lzw
     stream = opts.stream
     stream = stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n') if opts.minify  # removes comments and blank lines
-    filter = ''
-    if opts.lzw
+    filter = if opts.lzw
       stream = @constructor.lzwEnc stream
-      filter = "\n/Filter /LZWDecode"
+      '\n/Filter /LZWDecode'
+    else ''
     opts.parts = ["""
       <<
       /Length #{stream.length}#{filter}

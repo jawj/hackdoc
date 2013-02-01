@@ -138,11 +138,7 @@ https://github.com/jawj/hackdoc
       if (opts.minify) {
         stream = stream.replace(/%.*$/mg, '').replace(/\s*\n\s*/g, '\n');
       }
-      filter = '';
-      if (opts.lzw) {
-        stream = this.constructor.lzwEnc(stream);
-        filter = "\n/Filter /LZWDecode";
-      }
+      filter = opts.lzw ? (stream = this.constructor.lzwEnc(stream), '\n/Filter /LZWDecode') : '';
       opts.parts = ["<<\n/Length " + stream.length + filter + "\n>>\nstream\n", stream, "\nendstream"];
       PDFStream.__super__.constructor.call(this, pdf, opts);
     }
