@@ -16,30 +16,40 @@ https://github.com/jawj/hackdoc
 
   this.PDFObj = (function() {
 
+    PDFObj.create = function(pdf, opts) {
+      return new this(pdf, opts);
+    };
+
     function PDFObj(pdf, opts) {
-      var part, parts, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4;
+      var _ref;
       if (opts == null) {
         opts = {};
       }
-      if ((_ref = this.objNum) == null) {
-        this.objNum = (_ref1 = opts.num) != null ? _ref1 : pdf.nextObjNum();
-      }
-      if ((_ref2 = this.ref) == null) {
-        this.ref = "" + this.objNum + " 0 R";
+      this.objNum = (_ref = opts.num) != null ? _ref : pdf.nextObjNum();
+      this.ref = "" + this.objNum + " 0 R";
+      this.update(opts);
+      pdf.addObj(this);
+    }
+
+    PDFObj.prototype.update = function(opts) {
+      var part, parts, _i, _len, _ref, _ref1, _results;
+      if (opts == null) {
+        opts = {};
       }
       if (!((opts.parts != null) || (opts.data != null))) {
         return;
       }
-      parts = (_ref3 = opts.parts) != null ? _ref3 : [opts.data];
+      parts = (_ref = opts.parts) != null ? _ref : [opts.data];
       this.parts = ["\n" + this.objNum + " 0 obj\n"].concat(__slice.call(parts), ["\nendobj\n"]);
       this.length = 0;
-      _ref4 = this.parts;
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        part = _ref4[_i];
-        this.length += part.length;
+      _ref1 = this.parts;
+      _results = [];
+      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+        part = _ref1[_i];
+        _results.push(this.length += part.length);
       }
-      pdf.addObj(this);
-    }
+      return _results;
+    };
 
     return PDFObj;
 
@@ -264,43 +274,9 @@ https://github.com/jawj/hackdoc
       if (filterMethod !== 0) {
         this.error = 'Unsupported filter in PNG';
       }
-      if (this.error != null) {
-        return;
-      }
       if (interlaceMethod !== 0 || (colorType === 4 || colorType === 6)) {
-        if (opts.tag != null) {
-          return new PDFImageViaCanvas(pdf, opts);
-        } else {
-          this.error = 'Unsupported interlacing and/or alpha channel in PNG, and no <img> tag supplied for <canvas> strategy';
-          return;
-        }
+        this.error = 'Unsupported interlacing and/or alpha channel in PNG';
       }
-      colors = (function() {
-        switch (colorType) {
-          case 0:
-          case 3:
-            return 1;
-          case 2:
-            return 3;
-          default:
-            return null;
-        }
-      })();
-      colorSpace = (function() {
-        switch (colorType) {
-          case 0:
-            return '/DeviceGray';
-          case 2:
-            return '/DeviceRGB';
-          case 3:
-            paletteObj = new PDFStream(pdf, {
-              stream: palette
-            });
-            return "[/Indexed /DeviceRGB " + (palette.length / 3 - 1) + " " + paletteObj.ref + "]";
-          default:
-            return this.error = 'Unsupported number of colours in PNG';
-        }
-      }).call(this);
       if (this.error != null) {
         return;
       }
@@ -326,16 +302,41 @@ https://github.com/jawj/hackdoc
               if (alpha === 0x00) {
                 mask += " " + i + " " + i;
               } else if (alpha !== 0xff) {
-                if (opts.tag != null) {
-                  return new PDFImageViaCanvas(pdf, opts);
-                } else {
-                  this.error = 'Partial transparency (in tRNS chunk) unsupported in paletted PNG, and no <img> tag supplied for <canvas> strategy';
-                  return;
-                }
+                this.error = 'Partial transparency (in tRNS chunk) unsupported in paletted PNG';
+                return;
               }
             }
             mask += ' ]';
         }
+      }
+      colors = (function() {
+        switch (colorType) {
+          case 0:
+          case 3:
+            return 1;
+          case 2:
+            return 3;
+          default:
+            return null;
+        }
+      })();
+      colorSpace = (function() {
+        switch (colorType) {
+          case 0:
+            return '/DeviceGray';
+          case 2:
+            return '/DeviceRGB';
+          case 3:
+            paletteObj = PDFStream.create(pdf, {
+              stream: palette
+            });
+            return "[/Indexed /DeviceRGB " + (palette.length / 3 - 1) + " " + paletteObj.ref + "]";
+          default:
+            return this.error = 'Unsupported number of colours in PNG';
+        }
+      }).call(this);
+      if (this.error != null) {
+        return;
       }
       idatLen = 0;
       for (_j = 0, _len = imageData.length; _j < _len; _j++) {
@@ -387,7 +388,7 @@ https://github.com/jawj/hackdoc
           alphaArr[alphaPos++] = alpha - (predict ? pixelArr[i - 1] : 0);
         }
       }
-      smaskRef = alphaTrans ? (filter = opts.lzw ? (alphaArr = PDFStream.lzwEnc(alphaArr), "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 1 /Columns " + this.width + " >>") : '', smaskStream = new PDFObj(pdf, {
+      smaskRef = alphaTrans ? (filter = opts.lzw ? (alphaArr = PDFStream.lzwEnc(alphaArr), "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 1 /Columns " + this.width + " >>") : '', smaskStream = PDFObj.create(pdf, {
         parts: ["<<\n/Type /XObject\n/Subtype /Image\n/ColorSpace /DeviceGray\n/BitsPerComponent 8\n/Width " + this.width + "\n/Height " + this.height + "\n/Length " + alphaArr.length + filter + "\n>>\nstream\n", alphaArr, "\nendstream"]
       }), "\n/SMask " + smaskStream.ref) : '';
       filter = opts.lzw ? (rgbArr = PDFStream.lzwEnc(rgbArr), "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 3 /Columns " + this.width + " >>") : '';
@@ -424,16 +425,20 @@ https://github.com/jawj/hackdoc
       };
     };
 
-    function PDFImage(pdf, opts) {
-      if ((opts.arrBuf != null) && PDFJPEG.identify(opts)) {
-        return new PDFJPEG(pdf, opts);
-      } else if ((opts.arrBuf != null) && PDFPNG.identify(opts)) {
-        return new PDFPNG(pdf, opts);
-      } else if ((opts.tag != null) && opts.tag.width > 0) {
-        return new PDFImageViaCanvas(pdf, opts);
-      } else {
-        this.error = 'No JPEG or PNG header in image, and <img> tag not supplied, not loaded, or not a browser-supported image';
+    PDFImage.create = function(pdf, opts) {
+      var img;
+      if (opts == null) {
+        opts = {};
       }
+      img = (opts.arrBuf != null) && PDFJPEG.identify(opts) ? PDFJPEG.create(pdf, opts) : (opts.arrBuf != null) && PDFPNG.identify(opts) ? PDFPNG.create(pdf, opts) : void 0;
+      if (!(img != null) || (img.error != null)) {
+        img = (opts.tag != null) && opts.tag.width > 0 ? PDFImageViaCanvas.create(pdf, opts) : new this;
+      }
+      return img;
+    };
+
+    function PDFImage() {
+      this.error = 'Image is not a supported JPEG or PNG, and <img> tag not supplied, not loaded, or not a browser-supported image';
     }
 
     return PDFImage;
@@ -1014,7 +1019,9 @@ https://github.com/jawj/hackdoc
     };
 
     HackDoc.prototype.addObj = function(obj) {
-      return this.objs.push(obj);
+      if (__indexOf.call(this.objs, obj) < 0) {
+        return this.objs.push(obj);
+      }
     };
 
     HackDoc.prototype.toBlob = function() {

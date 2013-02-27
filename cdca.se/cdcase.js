@@ -83,7 +83,7 @@
   pw = new ParallelWaiter(2, function(data) {
     var albumName, artist, artistFlow, artistPara, backContent, dur, durFlow, durMatch, durMaxWidth, durRe, filename, fontBoldObj, fontObj, frontContent, height, i, imgObj, insideFlow, insidePara, insideSize, insideText, k, maxSpineWidth, maxTrackHeight, maxTrackWidth, mediaBox, mins, name, nameFlow, namePara, num, numAndDurSize, numFlow, numMatch, numMaxWidth, numRe, pdf, releaseStr, releasedate, secs, spineCommands, spineSize, spineSpace, spineXHeightFactor, t, totalWidth, track, trackCommands, trackData, trackSize, trackSpacing, trackText, tracks, v, _i, _j, _k, _l, _len, _len1, _ref3, _ref4;
     pdf = new HackDoc(data.pdf);
-    imgObj = new PDFImage(pdf, extend(data.img, {
+    imgObj = PDFImage.create(pdf, extend(data.img, {
       ignoreTransparency: true
     }));
     _ref3 = data.albumData.album, artist = _ref3.artist, albumName = _ref3.name, releasedate = _ref3.releasedate;
@@ -131,22 +131,22 @@
       }
       return _results;
     })();
-    fontObj = new PDFFont(pdf, {
+    fontObj = PDFFont.create(pdf, {
       name: font
     });
-    fontBoldObj = new PDFFont(pdf, {
+    fontBoldObj = PDFFont.create(pdf, {
       name: fontBold
     });
     mediaBox = "[0 " + (pageSizes.a4.h - pageSize.h) + " " + pageSize.w + " " + pageSizes.a4.h + "]";
-    frontContent = new PDFStream(pdf, {
+    frontContent = PDFStream.create(pdf, {
       stream: "q  % colour block\n" + (bgCol.join(' ')) + " rg  % fill colour\n" + (fix(mm2pt(75))) + " " + (fix(pageSizes.a4.h - mm2pt(255))) + " " + (fix(mm2pt(120))) + " " + (fix(mm2pt(120))) + " re f  % rect, fill\nQ\n\nq  % small album art\n" + (fix(mm2pt(60))) + " 0 0 " + (fix(mm2pt(60))) + " " + (fix(mm2pt(165))) + " " + (fix(pageSizes.a4.h - mm2pt(225))) + " cm  % scaleX 0 0 scaleY trnslX trnslY cm\n0 1 -1 0 0 0 cm  % rotate 90deg a-cw\n/AlbumArt Do\nQ\n\nq  % line around small album art\n0.25 w  " + (fgCol.join(' ')) + " RG  % line colour\n" + (fix(mm2pt(105))) + " " + (fix(pageSizes.a4.h - mm2pt(225))) + " " + (fix(mm2pt(60))) + " " + (fix(mm2pt(60))) + " re  S  % rect, stroke\nQ\n\nq  % big album art\n" + (fix(mm2pt(120))) + " 0 0 " + (fix(mm2pt(120))) + " " + (fix(mm2pt(195))) + " " + (fix(pageSizes.a4.h - mm2pt(135))) + " cm  % scaleX 0 0 scaleY trnslX trnslY cm\n0 1 -1 0 0 0 cm  % rotate 90deg a-cw\n/AlbumArt Do\nQ\n\nq  % release date\n1 0 0 1 " + (fix(mm2pt(83))) + " " + (fix(pageSizes.a4.h - mm2pt(248))) + " cm  % scaleX 0 0 scaleY trnslX trnslY cm\n0 1 -1 0 0 0 cm  % rotate 90deg a-cw\nBT\n/Fnt " + insideSize + " Tf\n" + insidePara.commands + "\nET\nQ",
       minify: true
     });
-    new PDFObj(pdf, {
+    PDFObj.create(pdf, {
       data: "<<\n/Type /Page /Parent 3 0 R /Resources 6 0 R\n/Contents [" + frontContent.ref + " 4 0 R]\n/MediaBox " + mediaBox + "\n>>",
       num: 2
     });
-    new PDFObj(pdf, {
+    PDFObj.create(pdf, {
       data: "<<\n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R /Cs2 9 0 R >>\n/Font <<\n  /Tc3.0 11 0 R /Tc4.1 13 0 R /Tc2.0 10 0 R /TT5.1 15 0 R /Tc1.0 8 0 R /Tc6.0 16 0 R\n  /Fnt " + fontObj.ref + "\n  >>\n/XObject << /AlbumArt " + imgObj.ref + " >>\n>>",
       num: 6
     });
@@ -215,15 +215,15 @@
         break;
       }
     }
-    backContent = new PDFStream(pdf, {
+    backContent = PDFStream.create(pdf, {
       stream: "q  % colour block\n" + (bgCol.join(' ')) + " rg  % fill colour\n" + (fix(mm2pt(75))) + " " + (fix(pageSizes.a4.h - mm2pt(165))) + " " + (fix(mm2pt(117))) + " " + (fix(mm2pt(150))) + " re f  % rect, fill\nQ\n\nBT  % text down spine\n" + (fgCol.join(' ')) + " rg  % fill colour\n" + (fix(mm2pt(75) + (mm2pt(117) - totalWidth) / 2)) + " " + (fix(pageSizes.a4.h - mm2pt(15) - spineSize * spineXHeightFactor - (mm2pt(6.5) - spineSize) / 2)) + " Td\n" + spineCommands + "\n" + (fix(-artistFlow.width - spineSpace)) + " " + (fix(mm2pt(-143.5))) + " Td\n" + spineCommands + "\nET\n\nq  % track listing\n1 0 0 1 " + (fix(mm2pt(90))) + " " + (fix(pageSizes.a4.h - mm2pt(142))) + " cm  % scaleX 0 0 scaleY trnslX trnslY cm\n0 1 -1 0 0 0 cm  % rotate 90deg a-cw\nBT\n" + trackCommands + "\nET\nQ",
       minify: true
     });
-    new PDFObj(pdf, {
+    PDFObj.create(pdf, {
       data: "<<\n/Type /Page /Parent 3 0 R /Resources 24 0 R\n/Contents [" + backContent.ref + " 22 0 R]\n/MediaBox " + mediaBox + "\n>>",
       num: 21
     });
-    new PDFObj(pdf, {
+    PDFObj.create(pdf, {
       data: "<<\n/ProcSet [ /PDF /Text ] /ColorSpace << /Cs2 9 0 R /Cs1 7 0 R >>\n/Font <<\n  /Tc10.0 29 0 R /TT8.1 27 0 R /Tc7.0 25 0 R /Tc9.0 28 0 R\n  /Fnt " + fontObj.ref + " /FntBold " + fontBoldObj.ref + "\n  >>\n>>",
       num: 24
     });

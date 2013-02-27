@@ -8,26 +8,26 @@
 
   fontSize = 12;
 
-  fontObj = new PDFFont(pdf, {
+  fontObj = PDFFont.create(pdf, {
     name: fontName
   });
 
-  contentStream = new PDFStream(pdf, {
+  contentStream = PDFStream.create(pdf, {
     stream: "BT\n70 50 TD\n/F1 " + fontSize + " Tf\n" + (PDFText.flowPara(PDFText.preprocessPara('Hello world!', fontName), fontSize).commands) + "\nET",
     lzw: true
   });
 
-  pagesObj = new PDFObj(pdf);
+  pagesObj = PDFObj.create(pdf);
 
-  pageObj = new PDFObj(pdf, {
+  pageObj = PDFObj.create(pdf, {
     data: "<<\n/Type /Page\n/Parent " + pagesObj.ref + "\n/Resources <<\n  /Font << /F1 " + fontObj.ref + " >>\n>>\n/Contents " + contentStream.ref + "\n>>"
   });
 
-  PDFObj.call(pagesObj, pdf, {
+  pagesObj.update({
     data: "<<\n/Type /Pages\n/MediaBox [ 0 0 200 200 ]\n/Count 1\n/Kids [ " + pageObj.ref + " ]\n>>"
   });
 
-  rootObj = new PDFObj(pdf, {
+  rootObj = PDFObj.create(pdf, {
     data: "<<\n/Type /Catalog\n/Pages " + pagesObj.ref + "\n>>"
   });
 

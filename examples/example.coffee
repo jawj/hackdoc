@@ -11,8 +11,8 @@ loadAssets = ->
 
 pw = new ParallelWaiter 3, (data) ->
   pdf = new HackDoc data.pdf
-  jpegObj = new PDFImage pdf, data.jpeg
-  pngObj  = new PDFImage pdf, data.png
+  jpegObj = PDFImage.create pdf, data.jpeg
+  pngObj  = PDFImage.create pdf, data.png
   
   text1 = PDFText.preprocessPara 'Affluent finance AWAY 6×6 £12 €13 – 15 x hello—again LOVE HATE YOU ME 123‰ Höhner 2πr. Lorem ipsum do-lor sit amet, consectetur adip-iscing elit. Ut eu ffffff nec nunf pellentesquelaoreeteuatnuncphasellusnonmagnai-arcu consequat tincidunt sit amet conv-allis eros. In pellen–tesque pellentesque felis, ac varius nulla vehicula id. Sed rut-rum, quam nec semper dapibus, mi lorem adipiscing lectus, vel bibendum lorem erat quis neque. pellentesquelaoreeteuatnuncphasellusnonmagnaidconesqyatys x', 'Times-Roman', no
   
@@ -22,7 +22,7 @@ pw = new ParallelWaiter 3, (data) ->
   text2right = PDFText.flowPara text2, 14, maxWidth: 420, align: 'right'
   
   # add a new object -- an extra content stream
-  contentStream = new PDFStream pdf, stream: """
+  contentStream = PDFStream.create pdf, stream: """
     q  0.7 0.7 0.7 RG  72 #{600 + 12} 250 #{- text1full.height} re S  Q
     BT
       72 600 Td
@@ -54,7 +54,7 @@ pw = new ParallelWaiter 3, (data) ->
     """, lzw: yes
   
   # replace page object, with one change: adding a reference to our new content
-  new PDFObj pdf, data: """
+  PDFObj.create pdf, data: """
     << 
     /Type /Page 
     /Parent 3 0 R
@@ -65,11 +65,11 @@ pw = new ParallelWaiter 3, (data) ->
     """, num: 2
   
   # add references to Helvetica and Times as new objects
-  timesObj = new PDFFont pdf, name: 'Times-Roman'
-  helvObj  = new PDFFont pdf, name: 'Helvetica'
+  timesObj = PDFFont.create pdf, name: 'Times-Roman'
+  helvObj  = PDFFont.create pdf, name: 'Helvetica'
   
   # replace page resources object, adding references to our new fonts and images
-  new PDFObj pdf, data: """
+  PDFObj.create pdf, data: """
     << 
     /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R >> 
     /Font <<

@@ -8,15 +8,20 @@ https://github.com/jawj/hackdoc
 # PDF ref: http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf
 
 class @PDFObj
+  @create = (pdf, opts) -> new @(pdf, opts)
+  
   constructor: (pdf, opts = {}) ->
-    @objNum ?= opts.num ? pdf.nextObjNum()
-    @ref ?= "#{@objNum} 0 R"
+    @objNum = opts.num ? pdf.nextObjNum()
+    @ref = "#{@objNum} 0 R"
+    @update opts
+    pdf.addObj @
+  
+  update: (opts = {}) ->
     return unless opts.parts? or opts.data?
     parts = opts.parts ? [opts.data]
     @parts = ["\n#{@objNum} 0 obj\n", parts..., "\nendobj\n"]
     @length = 0
     (@length += part.length) for part in @parts
-    pdf.addObj @
   
 
 class @PDFStream extends PDFObj
@@ -218,27 +223,7 @@ class @PDFPNG extends PDFObj
     
     @error = 'Unsupported compression in PNG' unless compressionMethod is 0  # only 0 is in PNG spec
     @error = 'Unsupported filter in PNG' unless filterMethod is 0            # ditto
-    return if @error?
-    
-    if interlaceMethod isnt 0 or colorType in [4, 6]
-      if opts.tag?
-        return new PDFImageViaCanvas pdf, opts
-      else
-        @error = 'Unsupported interlacing and/or alpha channel in PNG, and no <img> tag supplied for <canvas> strategy'
-        return
-    
-    colors = switch colorType
-      when 0, 3 then 1  # 0 = grayscale, 3 = paletted
-      when 2 then 3     # 2 = RGB
-      else null
-      
-    colorSpace = switch colorType
-      when 0 then '/DeviceGray'
-      when 2 then '/DeviceRGB'
-      when 3
-        paletteObj = new PDFStream pdf, stream: palette
-        "[/Indexed /DeviceRGB #{palette.length / 3 - 1} #{paletteObj.ref}]"
-      else @error = 'Unsupported number of colours in PNG'
+    @error = 'Unsupported interlacing and/or alpha channel in PNG' if interlaceMethod isnt 0 or colorType in [4, 6]
     return if @error?
     
     mask = ''
@@ -261,12 +246,23 @@ class @PDFPNG extends PDFObj
             if alpha is 0x00
               mask += " #{i} #{i}"
             else if alpha isnt 0xff  # not 0 or ff => partial transparency, which can't be recreated with /Mask
-              if opts.tag?
-                return new PDFImageViaCanvas pdf, opts
-              else
-                @error = 'Partial transparency (in tRNS chunk) unsupported in paletted PNG, and no <img> tag supplied for <canvas> strategy'
-                return
+              @error = 'Partial transparency (in tRNS chunk) unsupported in paletted PNG'
+              return
           mask += ' ]'
+    
+    colors = switch colorType
+      when 0, 3 then 1  # 0 = grayscale, 3 = paletted
+      when 2 then 3     # 2 = RGB
+      else null
+    
+    colorSpace = switch colorType
+      when 0 then '/DeviceGray'
+      when 2 then '/DeviceRGB'
+      when 3
+        paletteObj = PDFStream.create pdf, stream: palette
+        "[/Indexed /DeviceRGB #{palette.length / 3 - 1} #{paletteObj.ref}]"
+      else @error = 'Unsupported number of colours in PNG'
+    return if @error?
     
     idatLen = 0
     (idatLen += chunk.length) for chunk in imageData
@@ -326,7 +322,7 @@ class @PDFImageViaCanvas extends PDFObj
         "\n/Filter /LZWDecode /DecodeParms << /Predictor 2 /Colors 1 /Columns #{@width} >>"
       else ''
       
-      smaskStream = new PDFObj pdf, parts: ["""
+      smaskStream = PDFObj.create pdf, parts: ["""
         <<
         /Type /XObject
         /Subtype /Image
@@ -371,15 +367,20 @@ class @PDFImage
         opts.success {arrBuf, tag}
     
   
-  constructor: (pdf, opts) ->
-    if opts.arrBuf? and PDFJPEG.identify opts 
-      return new PDFJPEG pdf, opts
+  @create = (pdf, opts = {}) ->
+    img = if opts.arrBuf? and PDFJPEG.identify opts 
+      PDFJPEG.create pdf, opts
     else if opts.arrBuf? and PDFPNG.identify opts 
-      return new PDFPNG pdf, opts  # could end up as PDFImageViaCanvas if unsupported
-    else if opts.tag? and opts.tag.width > 0
-      return new PDFImageViaCanvas pdf, opts
-    else
-      @error = 'No JPEG or PNG header in image, and <img> tag not supplied, not loaded, or not a browser-supported image'
+      PDFPNG.create pdf, opts
+    if not img? or img.error?
+      img = if opts.tag? and opts.tag.width > 0
+        PDFImageViaCanvas.create pdf, opts
+      else
+        new @
+    img
+  
+  constructor: ->
+    @error = 'Image is not a supported JPEG or PNG, and <img> tag not supplied, not loaded, or not a browser-supported image'
   
 
 class @PDFFont extends PDFObj
@@ -739,7 +740,7 @@ class @HackDoc
       yes
   
   nextObjNum: -> @nextFreeObjNum++
-  addObj: (obj) -> @objs.push obj
+  addObj: (obj) -> @objs.push obj unless obj in @objs
   toBlob: () ->
     @objs.sort (a, b) -> a.objNum - b.objNum
     bodyParts = [].concat (o.parts for o in @objs)...

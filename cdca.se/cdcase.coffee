@@ -47,7 +47,7 @@ pw = new ParallelWaiter 2, (data) ->
 
   pdf = new HackDoc data.pdf
   
-  imgObj = new PDFImage pdf, extend(data.img, ignoreTransparency: yes)
+  imgObj = PDFImage.create pdf, extend(data.img, ignoreTransparency: yes)
   
   {artist, name: albumName, releasedate} = data.albumData.album
   # artist += ' ' + artist + ' ' + artist + ' ' + artist  # test long artist/album names
@@ -81,15 +81,15 @@ pw = new ParallelWaiter 2, (data) ->
     {num, name, dur}  
   
   # add reference to fonts as new objects
-  fontObj     = new PDFFont pdf, name: font
-  fontBoldObj = new PDFFont pdf, name: fontBold
+  fontObj     = PDFFont.create pdf, name: font
+  fontBoldObj = PDFFont.create pdf, name: fontBold
   
   mediaBox = "[0 #{pageSizes.a4.h - pageSize.h} #{pageSize.w} #{pageSizes.a4.h}]"
   
   # front insert
   
   # content stream for front insert
-  frontContent = new PDFStream pdf, stream: """
+  frontContent = PDFStream.create pdf, stream: """
     q  % colour block
     #{bgCol.join ' '} rg  % fill colour
     #{fix mm2pt 75} #{fix pageSizes.a4.h - mm2pt 255} #{fix mm2pt 120} #{fix mm2pt 120} re f  % rect, fill
@@ -123,7 +123,7 @@ pw = new ParallelWaiter 2, (data) ->
     """, minify: yes
   
   # replace page 1 object, adding a reference to our new content and fiddling with MediaBox in case of letter paper
-  new PDFObj pdf, data: """
+  PDFObj.create pdf, data: """
     <<
     /Type /Page /Parent 3 0 R /Resources 6 0 R
     /Contents [#{frontContent.ref} 4 0 R]
@@ -132,7 +132,7 @@ pw = new ParallelWaiter 2, (data) ->
     """, num: 2
   
   # replace page 1 resources object, adding references to our new font and images (and all ProcSets)
-  new PDFObj pdf, data: """
+  PDFObj.create pdf, data: """
     <<
     /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R /Cs2 9 0 R >>
     /Font <<
@@ -205,7 +205,7 @@ pw = new ParallelWaiter 2, (data) ->
     break if height < maxTrackHeight
   
   # content stream for back insert
-  backContent = new PDFStream pdf, stream: """
+  backContent = PDFStream.create pdf, stream: """
     q  % colour block
     #{bgCol.join ' '} rg  % fill colour
     #{fix mm2pt 75} #{fix pageSizes.a4.h - mm2pt 165} #{fix mm2pt 117} #{fix mm2pt 150} re f  % rect, fill
@@ -229,7 +229,7 @@ pw = new ParallelWaiter 2, (data) ->
     """, minify: yes
       
   # replace page 2 object, adding a reference to our new content and fiddling with MediaBox in case of letter paper
-  new PDFObj pdf, data: """
+  PDFObj.create pdf, data: """
     <<
     /Type /Page /Parent 3 0 R /Resources 24 0 R
     /Contents [#{backContent.ref} 22 0 R]
@@ -238,7 +238,7 @@ pw = new ParallelWaiter 2, (data) ->
     """, num: 21
   
   # replace page 2 resources object, adding references to our new fonts
-  new PDFObj pdf, data: """
+  PDFObj.create pdf, data: """
     <<
     /ProcSet [ /PDF /Text ] /ColorSpace << /Cs2 9 0 R /Cs1 7 0 R >>
     /Font <<

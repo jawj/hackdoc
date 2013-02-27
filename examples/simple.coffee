@@ -6,9 +6,9 @@ pdf = new HackDoc
 fontName = 'Times-Roman'
 fontSize = 12
 
-fontObj = new PDFFont pdf, name: fontName
+fontObj = PDFFont.create pdf, name: fontName
 
-contentStream = new PDFStream pdf, stream: """
+contentStream = PDFStream.create pdf, stream: """
   BT
   70 50 TD
   /F1 #{fontSize} Tf
@@ -16,9 +16,9 @@ contentStream = new PDFStream pdf, stream: """
   ET""", lzw: yes
 
 # data-free declaration of pagesObj to break circular ref
-pagesObj = new PDFObj pdf
+pagesObj = PDFObj.create pdf
 
-pageObj = new PDFObj pdf, data: """<<
+pageObj = PDFObj.create pdf, data: """<<
   /Type /Page
   /Parent #{pagesObj.ref}
   /Resources <<
@@ -27,15 +27,15 @@ pageObj = new PDFObj pdf, data: """<<
   /Contents #{contentStream.ref}
   >>"""
 
-# now re-construct pagesObj with data
-PDFObj.call pagesObj, pdf, data: """<<
+# now update pagesObj with data
+pagesObj.update data: """<<
   /Type /Pages
   /MediaBox [ 0 0 200 200 ]
   /Count 1
   /Kids [ #{pageObj.ref} ]
   >>"""
 
-rootObj = new PDFObj pdf, data: """
+rootObj = PDFObj.create pdf, data: """
   <<
   /Type /Catalog
   /Pages #{pagesObj.ref}

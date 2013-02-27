@@ -35,8 +35,8 @@
   pw = new ParallelWaiter(3, function(data) {
     var contentStream, helvObj, jpegObj, pdf, pngObj, text1, text1full, text2, text2right, timesObj;
     pdf = new HackDoc(data.pdf);
-    jpegObj = new PDFImage(pdf, data.jpeg);
-    pngObj = new PDFImage(pdf, data.png);
+    jpegObj = PDFImage.create(pdf, data.jpeg);
+    pngObj = PDFImage.create(pdf, data.png);
     text1 = PDFText.preprocessPara('Affluent finance AWAY 6×6 £12 €13 – 15 x hello—again LOVE HATE YOU ME 123‰ Höhner 2πr. Lorem ipsum do-lor sit amet, consectetur adip-iscing elit. Ut eu ffffff nec nunf pellentesquelaoreeteuatnuncphasellusnonmagnai-arcu consequat tincidunt sit amet conv-allis eros. In pellen–tesque pellentesque felis, ac varius nulla vehicula id. Sed rut-rum, quam nec semper dapibus, mi lorem adipiscing lectus, vel bibendum lorem erat quis neque. pellentesquelaoreeteuatnuncphasellusnonmagnaidconesqyatys x', 'Times-Roman', false);
     text2 = PDFText.preprocessPara('The wind was a torrent of darkness among the gusty fleas, The moon was a ghostly galleon tossed upon cloudy seas, The road was a ribbon of moonlight over the purple moor, And the highwayman came riding— Riding—riding— The highwayman came fiding, up to the old inn-door.', 'Times-Roman');
     text1full = PDFText.flowPara(text1, 12, {
@@ -48,7 +48,7 @@
       maxWidth: 420,
       align: 'right'
     });
-    contentStream = new PDFStream(pdf, {
+    contentStream = PDFStream.create(pdf, {
       stream: "q  0.7 0.7 0.7 RG  72 " + (600 + 12) + " 250 " + (-text1full.height) + " re S  Q\nBT\n  72 600 Td\n  /TR 12 Tf\n  " + text1full.commands + "\nET\nq  1 0.5 0 RG  " + (72 + 420 - text2right.width) + " " + (350 + 14) + " " + text2right.width + " " + (-text2right.height) + " re S  Q\nBT\n  72 350 Td\n  /TR 14 Tf\n  " + text2right.commands + "\n  0 -8 Td\n  " + (PDFText.flowPara(text2, 14, {
         maxWidth: 420,
         align: 'left'
@@ -61,17 +61,17 @@
       }).commands) + "\nET\nq\n  72 0 0 72 400 400 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm Do\nQ\nq\n  0.5 0.5 0.5 rg\n  380 620 112 32 re  f\n  72 0 0 72 400 600 cm  % scaleX 0 0 scaleY translateX translateY\n  /MyIm2 Do\nQ",
       lzw: true
     });
-    new PDFObj(pdf, {
+    PDFObj.create(pdf, {
       data: "<< \n/Type /Page \n/Parent 3 0 R\n/Resources 6 0 R\n/Contents [4 0 R " + contentStream.ref + "]\n/MediaBox [0 0 595 842]\n>>",
       num: 2
     });
-    timesObj = new PDFFont(pdf, {
+    timesObj = PDFFont.create(pdf, {
       name: 'Times-Roman'
     });
-    helvObj = new PDFFont(pdf, {
+    helvObj = PDFFont.create(pdf, {
       name: 'Helvetica'
     });
-    new PDFObj(pdf, {
+    PDFObj.create(pdf, {
       data: "<< \n/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] /ColorSpace << /Cs1 7 0 R >> \n/Font <<\n  /TT1.0 8 0 R\n  /TR " + timesObj.ref + "\n  /H " + helvObj.ref + "\n  >> \n/XObject <<\n  /Im1 9 0 R\n  /MyIm " + jpegObj.ref + "\n  /MyIm2 " + pngObj.ref + "\n  >>\n>>",
       num: 6
     });
