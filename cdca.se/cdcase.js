@@ -19,7 +19,7 @@
 
   bgCol = [0.9, 0.9, 0.9];
 
-  fgCol = [0.5, 0.5, 0.5];
+  fgCol = [0.2, 0.2, 0.2];
 
   if (true) {
     font = 'Helvetica';

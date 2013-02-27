@@ -398,23 +398,23 @@ class @PDFFont extends PDFObj
     super pdf, opts
   
 
-class @xPDFText
+class @PDFText
   @sanitize = (s, fontName, rep = '_', whitelist = '') ->
     sanitized = ''
     for i in [0...s.length]
       c = s.charAt i
-      sanitized += if (PDFText.metrics.codes[c]? and PDFText.metrics.widths[fontName][c]?) or whitelist.indexOf(c) isnt -1 then c else rep
+      sanitized += if (PDFMetrics.codes[c]? and PDFMetrics.widths[fontName][c]?) or whitelist.indexOf(c) isnt -1 then c else rep
     sanitized
   
   @ligaturize = (s, fontName) ->
-    for k, v of PDFText.metrics.ligatures[fontName]
+    for k, v of PDFMetrics.ligatures[fontName]
       re = new RegExp k, 'g'
       s = s.replace re, v
     s
   
   @hexString = (s, hex = '<') ->
     for i in [0...s.length]
-      hex += PDFText.metrics.codes[s.charAt i]
+      hex += PDFMetrics.codes[s.charAt i]
     hex + '>'
   
   @paragraphize = (s) -> s.split /\r\n|\r|\n/
@@ -424,8 +424,8 @@ class @xPDFText
     words
   
   @widthify = (words, fontName) ->
-    widths = PDFText.metrics.widths[fontName]
-    kerning = PDFText.metrics.kerning[fontName]
+    widths = PDFMetrics.widths[fontName]
+    kerning = PDFMetrics.kerning[fontName]
     
     for word, i in words
       nextWord = words[i + 1]
@@ -551,7 +551,7 @@ class @xPDFText
     {commands, para, width, height}
   
 
-class @PDFText
+class @xPDFText
   class @Word
     @parasFromText = (s) -> s.split /\r\n|\r|\n/
     @wordsFromPara = (s, fontName, ligatures) -> 

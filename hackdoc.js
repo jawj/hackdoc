@@ -453,11 +453,11 @@ https://github.com/jawj/hackdoc
 
   })(PDFObj);
 
-  this.xPDFText = (function() {
+  this.PDFText = (function() {
 
-    function xPDFText() {}
+    function PDFText() {}
 
-    xPDFText.sanitize = function(s, fontName, rep, whitelist) {
+    PDFText.sanitize = function(s, fontName, rep, whitelist) {
       var c, i, sanitized, _i, _ref;
       if (rep == null) {
         rep = '_';
@@ -468,14 +468,14 @@ https://github.com/jawj/hackdoc
       sanitized = '';
       for (i = _i = 0, _ref = s.length; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
         c = s.charAt(i);
-        sanitized += ((PDFText.metrics.codes[c] != null) && (PDFText.metrics.widths[fontName][c] != null)) || whitelist.indexOf(c) !== -1 ? c : rep;
+        sanitized += ((PDFMetrics.codes[c] != null) && (PDFMetrics.widths[fontName][c] != null)) || whitelist.indexOf(c) !== -1 ? c : rep;
       }
       return sanitized;
     };
 
-    xPDFText.ligaturize = function(s, fontName) {
+    PDFText.ligaturize = function(s, fontName) {
       var k, re, v, _ref;
-      _ref = PDFText.metrics.ligatures[fontName];
+      _ref = PDFMetrics.ligatures[fontName];
       for (k in _ref) {
         v = _ref[k];
         re = new RegExp(k, 'g');
@@ -484,32 +484,32 @@ https://github.com/jawj/hackdoc
       return s;
     };
 
-    xPDFText.hexString = function(s, hex) {
+    PDFText.hexString = function(s, hex) {
       var i, _i, _ref;
       if (hex == null) {
         hex = '<';
       }
       for (i = _i = 0, _ref = s.length; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
-        hex += PDFText.metrics.codes[s.charAt(i)];
+        hex += PDFMetrics.codes[s.charAt(i)];
       }
       return hex + '>';
     };
 
-    xPDFText.paragraphize = function(s) {
+    PDFText.paragraphize = function(s) {
       return s.split(/\r\n|\r|\n/);
     };
 
-    xPDFText.wordify = function(s) {
+    PDFText.wordify = function(s) {
       var words;
       words = s.match(/[^ —–-]*[—–-]? */g);
       words.pop();
       return words;
     };
 
-    xPDFText.widthify = function(words, fontName) {
+    PDFText.widthify = function(words, fontName) {
       var TJData, char, charCount, charWidth, endWidth, i, kernWidth, kerning, midWidth, nextChar, nextWord, nextWordChar, seenSpace, spaceCount, str, widths, word, _i, _j, _len, _ref, _ref1, _results;
-      widths = PDFText.metrics.widths[fontName];
-      kerning = PDFText.metrics.kerning[fontName];
+      widths = PDFMetrics.widths[fontName];
+      kerning = PDFMetrics.kerning[fontName];
       _results = [];
       for (i = _i = 0, _len = words.length; _i < _len; i = ++_i) {
         word = words[i];
@@ -557,7 +557,7 @@ https://github.com/jawj/hackdoc
       return _results;
     };
 
-    xPDFText.preprocessPara = function(s, fontName, ligatures) {
+    PDFText.preprocessPara = function(s, fontName, ligatures) {
       var ligaturize;
       if (ligatures == null) {
         ligatures = true;
@@ -566,7 +566,7 @@ https://github.com/jawj/hackdoc
       return PDFText.widthify(PDFText.wordify(ligaturize(PDFText.sanitize(s, fontName), fontName)), fontName);
     };
 
-    xPDFText.flowPara = function(para, fontSize, opts) {
+    PDFText.flowPara = function(para, fontSize, opts) {
       var TJData, charCount, charSpace, charSpaceFactor, charStretch, commands, finishLine, fix, height, i, leading, line, lineData, linesData, minusLSpace, numLines, rSpace, scale, scaledLineWidth, scaledMaxWidth, scaledWidth, spaceCount, stretchFactor, width, willExceedHeight, willWrap, word, wordSpace, wordSpaceFactor, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
       if (opts == null) {
         opts = {};
@@ -707,15 +707,15 @@ https://github.com/jawj/hackdoc
       };
     };
 
-    return xPDFText;
+    return PDFText;
 
   })();
 
-  this.PDFText = (function() {
+  this.xPDFText = (function() {
 
-    function PDFText() {}
+    function xPDFText() {}
 
-    PDFText.Word = (function() {
+    xPDFText.Word = (function() {
 
       Word.parasFromText = function(s) {
         return s.split(/\r\n|\r|\n/);
@@ -812,7 +812,7 @@ https://github.com/jawj/hackdoc
 
     })();
 
-    PDFText.Flow = (function() {
+    xPDFText.Flow = (function() {
 
       Flow.prototype.defaults = {
         maxWidth: Infinity,
@@ -894,7 +894,7 @@ https://github.com/jawj/hackdoc
 
     })();
 
-    PDFText.Line = (function() {
+    xPDFText.Line = (function() {
 
       function Line(words, scaledWidth, charCount, spaceCount) {
         this.words = words;
@@ -956,7 +956,7 @@ https://github.com/jawj/hackdoc
 
     })();
 
-    return PDFText;
+    return xPDFText;
 
   }).call(this);
 
