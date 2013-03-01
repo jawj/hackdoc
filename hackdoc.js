@@ -8,11 +8,29 @@ https://github.com/jawj/hackdoc
 
 
 (function() {
-  var fontName, k, ligs, v, _ref,
+  var PDFError, fontName, k, ligs, v, _ref,
     __slice = [].slice,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+  PDFError = (function() {
+
+    function PDFError(code, message) {
+      this.code = code;
+      this.message = message;
+    }
+
+    PDFError.codes = {
+      PDF_INVALID: 1,
+      IMAGE_INVALID: 2,
+      IMAGE_UNSUPPORTED: 3,
+      IMAGE_UNKNOWN: 4
+    };
+
+    return PDFError;
+
+  })();
 
   this.PDFObj = (function() {
 

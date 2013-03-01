@@ -7,6 +7,14 @@ https://github.com/jawj/hackdoc
 
 # PDF ref: http://wwwimages.adobe.com/www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf
 
+class PDFError
+  constructor: (@code, @message) -> # nowt
+  @codes =
+    PDF_INVALID:        1
+    IMAGE_INVALID:      2
+    IMAGE_UNSUPPORTED:  3
+    IMAGE_UNKNOWN:      4
+
 class @PDFObj
   @create = (pdf, opts) -> new @(pdf, opts)
   
