@@ -3,6 +3,80 @@
 # TODO: UI!
 # TODO: concatenate, minify & inline all JS
 
+kColours = (imgTag, opts = {}) ->
+  opts.k ?= 3
+  opts.numSamples ?= 500
+  opts.sampleAttempts ?= opts.numSamples / 2
+  opts.iterations ?= 100
+
+  # randomness setup
+  Math.seedrandom opts.rngSeed if opts.rngSeed?
+  almostOne = 0.999999999999  # because Math.random() occasionally returns 1
+  randInt = (lt) -> Math.floor(Math.random() * almostOne * lt)  # returns int between 0 and lt - 1
+
+  # make <canvas> and get pixel array
+  {width, height} = imgTag
+  canvas = make {tag: 'canvas', width, height}
+  ctx = canvas.getContext '2d'
+  ctx.drawImage imgTag, 0, 0
+  pixelArr = (ctx.getImageData 0, 0, width, height).data
+  
+  # take random pixel samples
+  samples = for i in [0...opts.numSamples]
+    offset = randInt(width * height) * 4
+    r = pixelArr[offset]
+    g = pixelArr[offset + 1]
+    b = pixelArr[offset + 2]
+    {r, g, b}
+  
+  # randomise initial means
+  means = []
+  for i in [0...opts.k]
+    for attempt in [0...opts.sampleAttempts]
+      dupe = no
+      mean = samples[randInt opts.numSamples]
+      for prevMean in means
+        dupe = mean.r is prevMean.r and mean.g is prevMean.g and mean.b is prevMean.b
+        break if dupe
+      break unless dupe
+    break if dupe
+    means.push mean
+  
+  for i in [0...opts.iterations]
+
+    # reset count and component sums
+    for mean in means
+      mean.sampleCount = mean.rSum = mean.gSum = mean.bSum = 0
+
+    # find nearest mean for each sample, and add to that mean's component sums and count
+    for sample in samples
+      minDistSq = Infinity
+      for mean in means
+        rDiff = sample.r - mean.r
+        gDiff = sample.g - mean.g
+        bDiff = sample.b - mean.b
+        distSq = rDiff * rDiff + gDiff * gDiff + bDiff * bDiff
+        if distSq < minDistSq
+          nearestMean = mean
+          minDistSq = distSq
+      nearestMean.sampleCount += 1
+      nearestMean.rSum += sample.r
+      nearestMean.gSum += sample.g
+      nearestMean.bSum += sample.b
+
+    # recalcuate mean from component sums and count
+    for mean in means when mean.sampleCount > 0
+      mean.r = Math.round(mean.rSum / mean.sampleCount)
+      mean.g = Math.round(mean.gSum / mean.sampleCount)
+      mean.b = Math.round(mean.bSum / mean.sampleCount)
+  
+  # sort lightest first
+  # means.sort((a, b) -> a.r + a.g + a.b < b.r + b.g + b.b)
+
+  # sort: most representative first
+  means.sort((a, b) -> a.sampleCount < b.sampleCount)
+  means
+
 pageSizes = 
   a4:
     w: 595
@@ -34,6 +108,7 @@ albumQuery = 'http://ws.audioscrobbler.com/2.0/?' +
 loadAssets = ->
   xhr url: 'template.pdf', type: 'arraybuffer', success: (req) -> pw.done pdf: req.response
   jsonp url: albumQuery, success: (albumData) ->
+    console.log albumData
     imgs = {}
     for img in albumData.album.image
       imgs[img.size] = img['#text']
@@ -43,16 +118,32 @@ loadAssets = ->
     PDFImage.xhr url: imgUrl.replace(/^http:\//, 'http://mackerron.com'), success: (img) ->
       pw.done {albumData, img}
 
+# TODO: not all images are from the same origin, so proxy needs more flexibility
+
 pw = new ParallelWaiter 2, (data) ->
 
   pdf = new HackDoc data.pdf
-  
+
+  # colour k-means test
+  cs = kColours data.img.tag, rngSeed: 'cdca.se.'
+  console.log cs
+  for c in cs
+    div = make parent: get(tag: 'body')
+    s = div.style
+    s.float = 'left'
+    s.width = s.height = '100px'
+    s.backgroundColor = "rgb(#{c.r}, #{c.g}, #{c.b})"
+  div = make parent: get(tag: 'body')
+  div.style.clear = 'both'
+
   imgObj = PDFImage.create pdf, extend(data.img, ignoreTransparency: yes)
   
   {artist, name: albumName, releasedate} = data.albumData.album
   # artist += ' ' + artist + ' ' + artist + ' ' + artist  # test long artist/album names
   # albumName += ' ' + albumName + ' ' + albumName + ' ' + albumName
   
+  # TODO: not all albums have track listings
+
   tracks = for t, i in data.albumData.album.tracks.track
     mins = '' + Math.floor(t.duration / 60)
     secs = '' + t.duration % 60
