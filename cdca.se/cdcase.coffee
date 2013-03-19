@@ -1,11 +1,10 @@
 
-# TODO: k-means bg colour
 # TODO: UI!
 # TODO: concatenate, minify & inline all JS
 
 kColours = (imgTag, opts = {}) ->
   opts.k ?= 3
-  opts.numSamples ?= 500
+  opts.numSamples ?= 250
   opts.sampleAttempts ?= opts.numSamples / 2
   opts.iterations ?= 100
 
@@ -21,15 +20,12 @@ kColours = (imgTag, opts = {}) ->
   ctx.drawImage imgTag, 0, 0
   pixelArr = (ctx.getImageData 0, 0, width, height).data
   
-  # take random pixel samples
+  # sample pixels at random
   samples = for i in [0...opts.numSamples]
     offset = randInt(width * height) * 4
-    r = pixelArr[offset]
-    g = pixelArr[offset + 1]
-    b = pixelArr[offset + 2]
-    {r, g, b}
+    {r: pixelArr[offset], g: pixelArr[offset + 1], b: pixelArr[offset + 2]}
   
-  # randomise initial means
+  # select k initial 'means' at random from samples
   means = []
   for i in [0...opts.k]
     for attempt in [0...opts.sampleAttempts]
@@ -48,7 +44,7 @@ kColours = (imgTag, opts = {}) ->
     for mean in means
       mean.sampleCount = mean.rSum = mean.gSum = mean.bSum = 0
 
-    # find nearest mean for each sample, and add to that mean's component sums and count
+    # find nearest mean for each sample
     for sample in samples
       minDistSq = Infinity
       for mean in means
@@ -59,6 +55,8 @@ kColours = (imgTag, opts = {}) ->
         if distSq < minDistSq
           nearestMean = mean
           minDistSq = distSq
+
+      # add sample values to nearest mean's component sums and count
       nearestMean.sampleCount += 1
       nearestMean.rSum += sample.r
       nearestMean.gSum += sample.g
@@ -66,16 +64,17 @@ kColours = (imgTag, opts = {}) ->
 
     # recalcuate mean from component sums and count
     for mean in means when mean.sampleCount > 0
-      mean.r = Math.round(mean.rSum / mean.sampleCount)
-      mean.g = Math.round(mean.gSum / mean.sampleCount)
-      mean.b = Math.round(mean.bSum / mean.sampleCount)
+      mean.r = mean.rSum / mean.sampleCount
+      mean.g = mean.gSum / mean.sampleCount
+      mean.b = mean.bSum / mean.sampleCount
   
   # sort lightest first
   # means.sort((a, b) -> a.r + a.g + a.b < b.r + b.g + b.b)
+  
+  means.sort((a, b) -> a.sampleCount < b.sampleCount) # most 'representative' first
+  for mean in means
+    {r: Math.round(mean.r), g: Math.round(mean.g), b: Math.round(mean.b)}
 
-  # sort: most representative first
-  means.sort((a, b) -> a.sampleCount < b.sampleCount)
-  means
 
 pageSizes = 
   a4:

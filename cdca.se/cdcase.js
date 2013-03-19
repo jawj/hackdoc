@@ -3,7 +3,7 @@
   var albumQuery, bgCol, fgCol, fix, font, fontBold, kColours, loadAssets, mm2pt, nAmerica, pageSize, pageSizes, pw, _ref, _ref1, _ref2;
 
   kColours = function(imgTag, opts) {
-    var almostOne, attempt, b, bDiff, canvas, ctx, distSq, dupe, g, gDiff, height, i, mean, means, minDistSq, nearestMean, offset, pixelArr, prevMean, r, rDiff, randInt, sample, samples, width, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _n, _o, _p, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
+    var almostOne, attempt, bDiff, canvas, ctx, distSq, dupe, gDiff, height, i, mean, means, minDistSq, nearestMean, offset, pixelArr, prevMean, rDiff, randInt, sample, samples, width, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _m, _n, _o, _p, _q, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _results;
 
     if (opts == null) {
       opts = {};
@@ -12,7 +12,7 @@
       opts.k = 3;
     }
     if ((_ref1 = opts.numSamples) == null) {
-      opts.numSamples = 500;
+      opts.numSamples = 250;
     }
     if ((_ref2 = opts.sampleAttempts) == null) {
       opts.sampleAttempts = opts.numSamples / 2;
@@ -42,13 +42,10 @@
       _results = [];
       for (i = _i = 0, _ref4 = opts.numSamples; 0 <= _ref4 ? _i < _ref4 : _i > _ref4; i = 0 <= _ref4 ? ++_i : --_i) {
         offset = randInt(width * height) * 4;
-        r = pixelArr[offset];
-        g = pixelArr[offset + 1];
-        b = pixelArr[offset + 2];
         _results.push({
-          r: r,
-          g: g,
-          b: b
+          r: pixelArr[offset],
+          g: pixelArr[offset + 1],
+          b: pixelArr[offset + 2]
         });
       }
       return _results;
@@ -103,15 +100,24 @@
         if (!(mean.sampleCount > 0)) {
           continue;
         }
-        mean.r = Math.round(mean.rSum / mean.sampleCount);
-        mean.g = Math.round(mean.gSum / mean.sampleCount);
-        mean.b = Math.round(mean.bSum / mean.sampleCount);
+        mean.r = mean.rSum / mean.sampleCount;
+        mean.g = mean.gSum / mean.sampleCount;
+        mean.b = mean.bSum / mean.sampleCount;
       }
     }
     means.sort(function(a, b) {
       return a.sampleCount < b.sampleCount;
     });
-    return means;
+    _results = [];
+    for (_q = 0, _len5 = means.length; _q < _len5; _q++) {
+      mean = means[_q];
+      _results.push({
+        r: Math.round(mean.r),
+        g: Math.round(mean.g),
+        b: Math.round(mean.b)
+      });
+    }
+    return _results;
   };
 
   pageSizes = {
