@@ -71,9 +71,8 @@ kColours = (imgTag, opts = {}) ->
   # sort lightest first
   # means.sort((a, b) -> a.r + a.g + a.b < b.r + b.g + b.b)
   
-  means.sort((a, b) -> a.sampleCount < b.sampleCount) # most 'representative' first
-  for mean in means
-    {r: Math.round(mean.r), g: Math.round(mean.g), b: Math.round(mean.b)}
+  means.sort((a, b) -> a.sampleCount < b.sampleCount)  # most 'representative' first
+  {r: Math.round(mean.r), g: Math.round(mean.g), b: Math.round(mean.b)} for mean in means
 
 
 pageSizes = 
