@@ -23,8 +23,9 @@ kColours = (imgTag, opts = {}) ->
   pixelArr = (ctx.getImageData 0, 0, width, height).data
   
   # sample pixels at random
+  pixelCount = width * height
   samples = for i in [0...opts.numSamples]
-    offset = randInt(width * height) * 4
+    offset = randInt(pixelCount) * 4
     {r: pixelArr[offset], g: pixelArr[offset + 1], b: pixelArr[offset + 2]}
   
   # select k initial 'means' at random from samples
@@ -40,6 +41,7 @@ kColours = (imgTag, opts = {}) ->
     break if dupe
     means.push mean
   
+  # main loop
   for i in [0...opts.iterations]
 
     # reset count and component sums
@@ -70,15 +72,12 @@ kColours = (imgTag, opts = {}) ->
       mean.g = mean.gSum / mean.sampleCount
       mean.b = mean.bSum / mean.sampleCount
 
-  # sort lightest first
-  # means.sort((a, b) -> a.r + a.g + a.b < b.r + b.g + b.b)
-  
-  # TODO: eliminate very similar colours?
-  
   means.sort((a, b) -> a.sampleCount < b.sampleCount)  # most 'representative' first
   {r: Math.round(mean.r), g: Math.round(mean.g), b: Math.round(mean.b)} for mean in means
-
-
+  
+  # TODO: eliminate/merge very similar colours?
+  # sort lightest first: means.sort((a, b) -> a.r + a.g + a.b < b.r + b.g + b.b)
+  
 pageSizes = 
   a4:
     w: 595
@@ -128,7 +127,6 @@ pw = new ParallelWaiter 2, (data) ->
 
   # colour k-means test
   cs = kColours data.img.tag, rngSeed: 'cdca.se.'
-  console.log cs
   for c in cs
     div = make parent: get(tag: 'body')
     s = div.style
