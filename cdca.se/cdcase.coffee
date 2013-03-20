@@ -2,7 +2,7 @@
 # TODO: UI!
 # TODO: concatenate, minify & inline all JS
 
-kColours = (imgTag, opts = {}) ->
+@kColours = (imgTag, opts = {}) ->
   opts.k ?= 5
   opts.numSamples ?= 500
   opts.sampleAttempts ?= opts.numSamples / 2
