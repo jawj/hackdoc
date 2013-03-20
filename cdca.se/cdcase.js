@@ -9,16 +9,16 @@
       opts = {};
     }
     if ((_ref = opts.k) == null) {
-      opts.k = 3;
+      opts.k = 5;
     }
     if ((_ref1 = opts.numSamples) == null) {
-      opts.numSamples = 250;
+      opts.numSamples = 500;
     }
     if ((_ref2 = opts.sampleAttempts) == null) {
       opts.sampleAttempts = opts.numSamples / 2;
     }
     if ((_ref3 = opts.iterations) == null) {
-      opts.iterations = 100;
+      opts.iterations = 30;
     }
     if (opts.rngSeed != null) {
       Math.seedrandom(opts.rngSeed);

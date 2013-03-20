@@ -3,10 +3,12 @@
 # TODO: concatenate, minify & inline all JS
 
 kColours = (imgTag, opts = {}) ->
-  opts.k ?= 3
-  opts.numSamples ?= 250
+  opts.k ?= 5
+  opts.numSamples ?= 500
   opts.sampleAttempts ?= opts.numSamples / 2
-  opts.iterations ?= 100
+
+  # most pics converge in 15 - 25 iterations, and those that don't change little subsequently
+  opts.iterations ?= 30   
 
   # randomness setup
   Math.seedrandom opts.rngSeed if opts.rngSeed?
@@ -67,9 +69,11 @@ kColours = (imgTag, opts = {}) ->
       mean.r = mean.rSum / mean.sampleCount
       mean.g = mean.gSum / mean.sampleCount
       mean.b = mean.bSum / mean.sampleCount
-  
+
   # sort lightest first
   # means.sort((a, b) -> a.r + a.g + a.b < b.r + b.g + b.b)
+  
+  # TODO: eliminate very similar colours?
   
   means.sort((a, b) -> a.sampleCount < b.sampleCount)  # most 'representative' first
   {r: Math.round(mean.r), g: Math.round(mean.g), b: Math.round(mean.b)} for mean in means
