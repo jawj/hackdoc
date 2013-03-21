@@ -1,7 +1,22 @@
 
 # TODO: UI!
 # TODO: concatenate, minify & inline all JS
- 
+
+picker = () ->
+  hueDim = 7
+  hueSep = 1
+  subDim = 7
+  subSep = 0
+  blkSize = 10
+  
+  wh = hueDim * subDim * blkSize + hueSep * (hueDim - 1) + subSep * hueDim * (subDim - 1)
+
+  can = make tag: 'canvas', width: wh, height: wh, parent: get(tag: 'body')
+  ctx = can.getContext '2d'
+  
+picker()
+
+
 pageSizes = 
   a4:
     w: 595
