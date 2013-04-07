@@ -10,11 +10,8 @@ pageSizes =
     w: 8.5 * 72
     h: 11 * 72
 
-nAmerica = google.loader.ClientLocation?.address?.country_code in ['US', 'CA']
+nAmerica = google? and google.loader.ClientLocation?.address?.country_code in ['US', 'CA']
 pageSize = pageSizes[if nAmerica then 'letter' else 'a4']
-
-bgCol = [0.9, 0.9, 0.9]
-fgCol = [0.2, 0.2, 0.2]
 
 if yes
   font     = 'Helvetica'
@@ -50,7 +47,7 @@ pw = new ParallelWaiter 2, (data) ->
   pdf = new HackDoc data.pdf
 
   # colour k-means test
-  cs = kColours data.img.tag, rngSeed: 'cdca.se.'
+  cs = KCol.colours img: data.img.tag, rngSeed: 'cdca.se.'
   for c in cs
     div = make parent: get(tag: 'body')
     s = div.style
@@ -59,7 +56,20 @@ pw = new ParallelWaiter 2, (data) ->
     s.backgroundColor = "rgb(#{c.r}, #{c.g}, #{c.b})"
   div = make parent: get(tag: 'body')
   div.style.clear = 'both'
+  
+  white = {r: 255, g: 255, b: 255}
+  black = {r: 0, g: 0, b: 0}
+  
+  # use dominant colour for background
+  bgCol = cs[0]
+  
+  # if that's light, use black in foreground, else white
+  wDist = KCol.colourDistance bgCol, white
+  fgCol = if wDist >= 33 then white else black
 
+  bgCol = [bgCol.r / 255, bgCol.g / 255, bgCol.b / 255]
+  fgCol = [fgCol.r / 255, fgCol.g / 255, fgCol.b / 255]
+  
   imgObj = PDFImage.create pdf, extend(data.img, ignoreTransparency: yes)
   
   {artist, name: albumName, releasedate} = data.albumData.album
