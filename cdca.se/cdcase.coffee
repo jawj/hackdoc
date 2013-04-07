@@ -1,7 +1,7 @@
 
 # TODO: UI!
 # TODO: concatenate, minify & inline all JS
- 
+
 pageSizes = 
   a4:
     w: 595
