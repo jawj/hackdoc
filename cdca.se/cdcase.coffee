@@ -24,7 +24,7 @@ fix = (n) -> n.toFixed(3).replace /\.?0+$/, ''
 mm2pt = (mm) -> mm / 25.4 * 72
 
 albumQuery = 'http://ws.audioscrobbler.com/2.0/?' + 
-  'api_key=2113885e020cefe1d72f95d8378d32c1&method=album.getinfo&format=json&callback=<cb>&' + 
+  'api_key=2113885e020cefe1d72f95d8378d32c1&method=album.getinfo&autocorrect=1&format=json&callback=<cb>&' + 
   location.search.substring 1
 
 loadAssets = ->
@@ -37,10 +37,10 @@ loadAssets = ->
     for size in w 'mega extralarge large medium small'
       imgUrl = imgs[size]
       break if imgUrl?
-    PDFImage.xhr url: imgUrl.replace(/^http:\//, 'http://mackerron.com'), success: (img) ->
+    PDFImage.xhr url: imgUrl.replace(/^http:\//, 'http://mackerron.com/cdcase.images.proxy'), success: (img) ->
       pw.done {albumData, img}
 
-# TODO: not all images are from the same origin, so proxy needs more flexibility
+# TODO: proxy needs updating to limit by referrer (not IP) when deployed
 
 pw = new ParallelWaiter 2, (data) ->
 
