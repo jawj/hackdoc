@@ -88,6 +88,8 @@ pw = new ParallelWaiter 2, (data) ->
   trackText = tracks.join '\n'
   # trackText += '\n' + trackText + '\n' + trackText  # test long list
   
+  console.log trackText
+
   releaseStr = releasedate.match(/\b\w+ (19|20)\d\d\b/)?[0]
   insideText = if releaseStr? then "Released: #{releaseStr}" else ''
   

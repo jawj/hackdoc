@@ -2,14 +2,14 @@
 @KCol =
   colours: (opts) ->  # opts.img is the only required option
     opts[k] ?= v for k, v of KCol.defaults
-    Math.seedrandom opts.rngSeed if opts.rngSeed?
 
     pixelArr = KCol.pixelArray opts
     samples = opts.sampleFunc pixelArr, opts  
     means = KCol.startingValues samples, opts
     KCol.iterate means, samples, opts unless means.length < opts.k
     means.sort (a, b) -> a.sampleCount < b.sampleCount  # sort most 'representative' first
-    means = KCol.eliminateSimilar means, opts  
+    means = opts.includeColours.concat means if opts.includeColours?
+    means = KCol.eliminateSimilar means, opts
     KCol.rgbRound mean for mean in means
 
   pixelArray: (opts) ->
@@ -106,7 +106,7 @@
     distinctMeans
   
   randInt: (lt) ->  # returns int between 0 and lt - 1 
-    Math.floor(Math.random() * lt * 0.999999999999)  # because Math.random() occasionally returns 1
+    Math.floor(KCol.random() * lt * 0.999999999999)  # because Math.random() occasionally returns 1
 
   colourDistance: (c1, c2) ->  # 0 - 100, see http://compuphase.com/cmetric.htm
     rMean = (c1.r + c2.r) / 2
@@ -115,9 +115,20 @@
     b = c1.b - c2.b
     Math.sqrt((2 + rMean / 256) * r * r + 4 * g * g + (2 + (255 - rMean) / 256) * b * b) / 7.64834
 
+  brightness: (c) ->  # 0 - 255, see http://www.nbdtech.com/Blog/archive/2008/04/27/Calculating-the-Perceived-Brightness-of-a-Color.aspx
+    Math.sqrt c.r * c.r * 0.241 + c.g * c.g * 0.691 + c.b * c.b * 0.068
+
   rgbRound: (rgb) ->
     {r: Math.round(rgb.r), g: Math.round(rgb.g), b: Math.round(rgb.b)}
   
+  colourFromHexString: (str) ->
+    rgb = str.match /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i
+    return {r: parseInt(rgb[1], 16), g: parseInt(rgb[2], 16), b: parseInt(rgb[3], 16)} if rgb
+    rgb = str.match /^#?([0-9a-f])([0-9a-f])([0-9a-f])$/i
+    return {r: parseInt(rgb[1] + rgb[1], 16), g: parseInt(rgb[2] + rgb[2], 16), b: parseInt(rgb[3] + rgb[3], 16)} if rgb
+    throw "Invalid colour string '#{str}'"
+    
+
 @KCol.defaults =
   k:            5     # max number of colours to extract
   sampleFunc:   KCol.randomPixelSamples  # random or gridwise are built in
@@ -125,3 +136,5 @@
   meanAttempts: 50    # no. of times we try to find unique starting values within samples
   iterations:   30    # most pics converge in 15 - 25; the rest change little subsequently
   minDistance:  10    # eliminate colours from output that are closer together than this
+
+@KCol.random = Math.random

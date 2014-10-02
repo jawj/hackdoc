@@ -136,6 +136,7 @@ pw = new ParallelWaiter(2, function(data) {
     return _results;
   })();
   trackText = tracks.join('\n');
+  console.log(trackText);
   releaseStr = (_ref4 = releasedate.match(/\b\w+ (19|20)\d\d\b/)) != null ? _ref4[0] : void 0;
   insideText = releaseStr != null ? "Released: " + releaseStr : '';
   insideSize = 10;
