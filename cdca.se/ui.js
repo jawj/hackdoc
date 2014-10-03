@@ -88,8 +88,8 @@ angular.module('cdca.se', ['ui.bootstrap', 'colorpicker.module']).constant('brig
     if (colours == null) {
       colours = basicColours;
     }
-    this.fgColors = colours;
-    this.bgColors = colours;
+    this.fgColors = colours.slice(0);
+    this.bgColors = colours.slice(0);
     this.fgColorIndex = 0;
     return this.bgColorIndex = 1;
   };

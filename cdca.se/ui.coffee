@@ -78,8 +78,8 @@ angular.module 'cdca.se', ['ui.bootstrap', 'colorpicker.module']
 
   basicColours = ['#000', '#fff', '#888']
   @setColours = (colours = basicColours) -> 
-    @fgColors = colours
-    @bgColors = colours
+    @fgColors = colours[..]
+    @bgColors = colours[..]
     @fgColorIndex = 0
     @bgColorIndex = 1
 
