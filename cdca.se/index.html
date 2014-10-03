@@ -5,62 +5,7 @@
   <link rel="stylesheet" href="bootstrap.min.css">
   <link rel="stylesheet" href="bootstrap-theme.min.css">
   <link rel="stylesheet" href="colorpicker.css">
-  <style>
-    .nav, .pagination, .carousel, .panel-title a { cursor: pointer; }
-    
-    body { margin: 10px 20px; }
-    h4 { font-size: 12pt; margin: 0 0 10px; }
-    #paper { border: 1px solid #aaa; box-shadow: 1px 1px 2px #ccc; transition: width 0.25s, height 0.25s; float: left; position: relative; top: -25px; left: 10px; }
-    #font { font-size: 40pt; float: left; position: relative; top: -25px; left: 10px; width: 60px; }
-    .btn-group { float: left; }
-    #coverart { height: 275px; background-color: #eee; }
-    #tracklisting { height: 275px; }
-    .short-input { width: 100px; }
-    .medium-input { width: 275px; }
-    .block { padding: 10px; }
-    .float-left { float: left; }
-    .clear-left { clear: left; }
-
-    .color-select-item {
-      float: left;
-      height: 40px;
-      width: 45px;
-      cursor: pointer;
-    }
-    .color-select-item div {
-      height: 40px;
-      width: 40px;
-    }
-    .color-select-item.custom {
-      background: url('ellipsislight.png') no-repeat center;
-      background-size: 13px 3px;
-    }
-    .color-select-item.light.custom {
-      background-image: url('ellipsisdark.png');
-    }
-    .color-select-item.first {
-      border-top-left-radius: 5px;
-      border-bottom-left-radius: 5px;
-    }
-    .color-select-item.last {
-      border-top-right-radius: 5px;
-      border-bottom-right-radius: 5px;
-    }
-    .color-select-item.light {
-      border: 1px solid #bbb; 
-    }
-    .color-select-item.light:not(.last) {
-      border-right: none;
-    }
-    .color-select-item.selected {
-      background: url('checklight.png') no-repeat 75% 75%;
-      background-size: 14px 11px;
-      box-shadow: inset 0 3px 5px rgba(0,0,0,.125);
-    }
-    .color-select-item.light.selected {
-      background-image: url('checkdark.png')
-    }
-  </style>
+  <link rel="stylesheet" href="ui.css">
 </head>
 <body>
 
@@ -69,13 +14,13 @@
       <div class="float-left block">
         <h4>Artist</h4>
         <input class="form-control medium-input" ng-model="ctrl.artist" name="artist" required 
-               typeahead="artist for artist in ctrl.artistsHaystack ? ctrl.artistsHaystack.bestMatches($viewValue) : []" 
-               ng-blur="ctrl.getAlbums()" />
+               typeahead="artist for artist in ctrl.artistsHaystack ? ctrl.artistsHaystack.bestMatches($viewValue) : []" />
       </div>
       <div class="float-left block">
         <h4>Album</h4>
         <input class="form-control medium-input" ng-model="ctrl.album" name="album" required 
-               typeahead="album for album in ctrl.albumHaystack ? ctrl.albumHaystack.bestMatches($viewValue) : []" />
+               typeahead="album for album in ctrl.albumHaystack ? ctrl.albumHaystack.bestMatches($viewValue) : []"
+               ng-focus="ctrl.getAlbums()" />
       </div>
       <div class="float-left block">
         <h4>-</h4>
@@ -86,13 +31,19 @@
 
     <div class="clear-left float-left block">
       <h4>Cover art</h4>
-      <div><img id="coverart" ng-src="{{ ctrl.imgsrc }}" gm-load="ctrl.updateColours($event)" crossorigin="anonymous" class="medium-input" /></div>
+      <div id="imgdiv">
+        <img id="coverart" ng-src="{{ ctrl.imgsrc }}" gm-load="ctrl.imgLoaded($event)" crossorigin="anonymous" class="medium-input" />
+        <img id="imgspinner" src="ajax-loader.gif" style="position: absolute;" ng-show="ctrl.imgloading" />
+      </div>
     </div>
 
     <div class="float-left block">
       <h4>Track listing</h4>
-      <textarea id="tracklisting" class="form-control medium-input" ng-model="ctrl.tracks" rows="12" 
-                ng-style="{'background-color': ctrl.bgColor, color: ctrl.fgColor, 'font-family': ctrl.times ? 'serif' : 'sans-serif'}"></textarea>
+      <div id="tracklistdiv">
+        <textarea id="tracklisting" class="form-control medium-input" ng-model="ctrl.tracks" rows="12" 
+                  ng-style="{'background-color': ctrl.bgColor, color: ctrl.fgColor, 'font-family': ctrl.times ? 'serif' : 'sans-serif'}"></textarea>
+        <img id="tracklistspinner" src="ajax-loader.gif" style="position: absolute;" ng-show="ctrl.tracklistloading" />
+      </div>
     </div>
 
     <div class="float-left">
@@ -102,17 +53,17 @@
       </div>
 
       <div class="block">
-        <p>Data courtesy of <a href="http://www.last.fm/api">last.fm</a></p>
-      </div>
-
-      <div class="block">
-        <h4>Text colour</h4>
-        <color-select colors="ctrl.fgColors" selected-index="ctrl.fgColorIndex" selected-color="ctrl.fgColor" customize-last></color-select> 
+        <p><a ng-href="{{ ctrl.lastfmlink }}" target="_blank"><img src="lastfm_grey.gif" width="73" height="23" /></a></p>
       </div>
 
       <div class="block">
         <h4>Background colour</h4>
         <color-select colors="ctrl.bgColors" selected-index="ctrl.bgColorIndex" selected-color="ctrl.bgColor" customize-last></color-select> 
+      </div>
+
+      <div class="block">
+        <h4>Text colour</h4>
+        <color-select colors="ctrl.fgColors" selected-index="ctrl.fgColorIndex" selected-color="ctrl.fgColor" customize-last></color-select> 
       </div>
       
     </div>
@@ -138,7 +89,7 @@
 
   <div class="clear-left"></div>
 
-  <script src="https://www.google.com/jsapi"></script>
+  <!--<script src="https://www.google.com/jsapi"></script>-->
   <script src="array-monkey-patches.js"></script>
   <script src="angular.min.js"></script>
   <script src="ui-bootstrap-tpls-0.11.2.min.js"></script>

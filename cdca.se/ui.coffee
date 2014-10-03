@@ -83,11 +83,28 @@ angular.module 'cdca.se', ['ui.bootstrap', 'colorpicker.module']
     @fgColorIndex = 0
     @bgColorIndex = 1
 
+  @setImgsrc = (imgsrc) ->
+    @imgsrc = 'blank.png'
+    @imgloading = no
+    if imgsrc?
+      @imgsrc = imgsrc
+      @imgloading = yes
+
+  @getImgsrc = ->
+    if @imgsrc.match /\bblank\.png$/ then null else @imgsrc
+
+  @imgLoaded = (event) ->
+    @imgloading = no
+    if @getImgsrc()?
+      img = event.target
+      @updateColours img
+    
   @reset = ->
     @tracks = ''
     @setColours()
-    @imgsrc = 'blank.png'
-
+    @setImgsrc null
+    @lastfmlink = "http://www.last.fm/api"
+    
   @reset()
 
   nAmerica = google?.loader.ClientLocation?.address?.country_code in ['US', 'CA']
@@ -102,7 +119,10 @@ angular.module 'cdca.se', ['ui.bootstrap', 'colorpicker.module']
     Joni Mitchell/Blue
     Ben Folds Five/The Unauthorized Biography of Reinhold Messner
     The Beta Band/The Beta Band
-    The Rolling Stones/Beggars Banquet""".split("\n").shuffle()
+    The Rolling Stones/Beggars Banquet
+    Vampire Weekend/Contra
+    The Beatles/Rubber Soul
+    Laura Marling/A Creature I Don't Know""".split("\n").shuffle()
 
   exampleIndex = 0
   @example = ->
@@ -119,15 +139,21 @@ angular.module 'cdca.se', ['ui.bootstrap', 'colorpicker.module']
       albums = albumsData.topalbums.album
       albums.sort (x, y) -> if x.playcount < y.playcount then -1 else if x.playcount > y.playcount then 1 else 0
       albumNames = (album.name for album in albums)
-      self.albumHaystack = new Trigrams.Haystack albumNames
+      self.albumHaystack = new Trigrams.Haystack albumNames    
 
   @findAlbum = ->
     @reset()
+    @tracklistloading = yes
 
     lastfmService.query(method: 'album.getinfo', artist: @artist, album: @album, autocorrect: '1').success (albumData) ->
+      self.tracklistloading = no
       console.log albumData
-      self.artist = albumData.album.artist
-      self.album = albumData.album.name
+
+      album = albumData.album
+
+      self.artist = album.artist
+      self.album = album.name
+      self.lastfmlink = album.url
 
       if tracks = albumData.album.tracks?.track
         trackTexts = for t, i in tracks
@@ -138,6 +164,8 @@ angular.module 'cdca.se', ['ui.bootstrap', 'colorpicker.module']
           
         self.tracks = trackTexts.join '\n'
 
+      self.released = albumData.album.releasedate?.match(/\b\w+ (19|20)\d\d\b/)?[0]
+
       imgs = {}
       for img in albumData.album.image
         imgs[img.size] = img['#text']
@@ -146,19 +174,16 @@ angular.module 'cdca.se', ['ui.bootstrap', 'colorpicker.module']
         break if imgUrl?
       if imgUrl?
         proxiedUrl = imgUrl.replace(/^http:\//, 'http://mackerron.com/cdcase.images.proxy')
-        self.imgsrc = proxiedUrl
+        self.setImgsrc proxiedUrl
 
-  @updateColours = (event) ->
-    img = event.target
-    console.log img.src
-    return if img.src.match '/blank\.png$'
+  @updateColours = (img) ->
     KCol.random = new MTwist(31415926).random
-    imgColourObjs = KCol.colours img: img
+    imgColourObjs = KCol.colours img: img, includeColours: (KCol.colourFromHexString bc for bc in basicColours)
     imgColours = (KCol.hexStringFromColour ico for ico in imgColourObjs)
-    colours = [imgColours..., basicColours...]
+    colours = [imgColours[3..]..., basicColours...]
     @setColours colours
     @bgColorIndex = 0
-    @fgColorIndex = colours.length - if KCol.brightness(imgColourObjs[0]) > brightnessThreshold then 3 else 2
+    @fgColorIndex = colours.length - if KCol.brightness(imgColourObjs[3]) > brightnessThreshold then 3 else 2
 
 
   null

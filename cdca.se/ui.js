@@ -93,16 +93,40 @@ angular.module('cdca.se', ['ui.bootstrap', 'colorpicker.module']).constant('brig
     this.fgColorIndex = 0;
     return this.bgColorIndex = 1;
   };
+  this.setImgsrc = function(imgsrc) {
+    this.imgsrc = 'blank.png';
+    this.imgloading = false;
+    if (imgsrc != null) {
+      this.imgsrc = imgsrc;
+      return this.imgloading = true;
+    }
+  };
+  this.getImgsrc = function() {
+    if (this.imgsrc.match(/\bblank\.png$/)) {
+      return null;
+    } else {
+      return this.imgsrc;
+    }
+  };
+  this.imgLoaded = function(event) {
+    var img;
+    this.imgloading = false;
+    if (this.getImgsrc() != null) {
+      img = event.target;
+      return this.updateColours(img);
+    }
+  };
   this.reset = function() {
     this.tracks = '';
     this.setColours();
-    return this.imgsrc = 'blank.png';
+    this.setImgsrc(null);
+    return this.lastfmlink = "http://www.last.fm/api";
   };
   this.reset();
   nAmerica = (_ref = typeof google !== "undefined" && google !== null ? (_ref1 = google.loader.ClientLocation) != null ? (_ref2 = _ref1.address) != null ? _ref2.country_code : void 0 : void 0 : void 0) === 'US' || _ref === 'CA';
   this.letterpaper = nAmerica;
   this.times = false;
-  examples = "Karine Polwart/Traces\nO'Hooley & Tidow/The Fragile\nNick Drake/Five Leaves Left\nThe Decemberists/The Crane Wife\nBelle & Sebastian/If You're Feeling Sinister\nJoni Mitchell/Blue\nBen Folds Five/The Unauthorized Biography of Reinhold Messner\nThe Beta Band/The Beta Band\nThe Rolling Stones/Beggars Banquet".split("\n").shuffle();
+  examples = "Karine Polwart/Traces\nO'Hooley & Tidow/The Fragile\nNick Drake/Five Leaves Left\nThe Decemberists/The Crane Wife\nBelle & Sebastian/If You're Feeling Sinister\nJoni Mitchell/Blue\nBen Folds Five/The Unauthorized Biography of Reinhold Messner\nThe Beta Band/The Beta Band\nThe Rolling Stones/Beggars Banquet\nVampire Weekend/Contra\nThe Beatles/Rubber Soul\nLaura Marling/A Creature I Don't Know".split("\n").shuffle();
   exampleIndex = 0;
   this.example = function() {
     var example, _ref3;
@@ -147,16 +171,20 @@ angular.module('cdca.se', ['ui.bootstrap', 'colorpicker.module']).constant('brig
   };
   this.findAlbum = function() {
     this.reset();
+    this.tracklistloading = true;
     return lastfmService.query({
       method: 'album.getinfo',
       artist: this.artist,
       album: this.album,
       autocorrect: '1'
     }).success(function(albumData) {
-      var i, img, imgUrl, imgs, mins, proxiedUrl, secs, size, t, trackTexts, tracks, _i, _j, _len, _len1, _ref3, _ref4, _ref5;
+      var album, i, img, imgUrl, imgs, mins, proxiedUrl, secs, size, t, trackTexts, tracks, _i, _j, _len, _len1, _ref3, _ref4, _ref5, _ref6, _ref7;
+      self.tracklistloading = false;
       console.log(albumData);
-      self.artist = albumData.album.artist;
-      self.album = albumData.album.name;
+      album = albumData.album;
+      self.artist = album.artist;
+      self.album = album.name;
+      self.lastfmlink = album.url;
       if (tracks = (_ref3 = albumData.album.tracks) != null ? _ref3.track : void 0) {
         trackTexts = (function() {
           var _i, _len, _results;
@@ -174,15 +202,16 @@ angular.module('cdca.se', ['ui.bootstrap', 'colorpicker.module']).constant('brig
         })();
         self.tracks = trackTexts.join('\n');
       }
+      self.released = (_ref4 = albumData.album.releasedate) != null ? (_ref5 = _ref4.match(/\b\w+ (19|20)\d\d\b/)) != null ? _ref5[0] : void 0 : void 0;
       imgs = {};
-      _ref4 = albumData.album.image;
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        img = _ref4[_i];
+      _ref6 = albumData.album.image;
+      for (_i = 0, _len = _ref6.length; _i < _len; _i++) {
+        img = _ref6[_i];
         imgs[img.size] = img['#text'];
       }
-      _ref5 = w('mega extralarge large medium small');
-      for (_j = 0, _len1 = _ref5.length; _j < _len1; _j++) {
-        size = _ref5[_j];
+      _ref7 = w('mega extralarge large medium small');
+      for (_j = 0, _len1 = _ref7.length; _j < _len1; _j++) {
+        size = _ref7[_j];
         imgUrl = imgs[size];
         if (imgUrl != null) {
           break;
@@ -190,20 +219,24 @@ angular.module('cdca.se', ['ui.bootstrap', 'colorpicker.module']).constant('brig
       }
       if (imgUrl != null) {
         proxiedUrl = imgUrl.replace(/^http:\//, 'http://mackerron.com/cdcase.images.proxy');
-        return self.imgsrc = proxiedUrl;
+        return self.setImgsrc(proxiedUrl);
       }
     });
   };
-  this.updateColours = function(event) {
-    var colours, ico, img, imgColourObjs, imgColours;
-    img = event.target;
-    console.log(img.src);
-    if (img.src.match('/blank\.png$')) {
-      return;
-    }
+  this.updateColours = function(img) {
+    var bc, colours, ico, imgColourObjs, imgColours;
     KCol.random = new MTwist(31415926).random;
     imgColourObjs = KCol.colours({
-      img: img
+      img: img,
+      includeColours: (function() {
+        var _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = basicColours.length; _i < _len; _i++) {
+          bc = basicColours[_i];
+          _results.push(KCol.colourFromHexString(bc));
+        }
+        return _results;
+      })()
     });
     imgColours = (function() {
       var _i, _len, _results;
@@ -214,10 +247,10 @@ angular.module('cdca.se', ['ui.bootstrap', 'colorpicker.module']).constant('brig
       }
       return _results;
     })();
-    colours = __slice.call(imgColours).concat(__slice.call(basicColours));
+    colours = __slice.call(imgColours.slice(3)).concat(__slice.call(basicColours));
     this.setColours(colours);
     this.bgColorIndex = 0;
-    return this.fgColorIndex = colours.length - (KCol.brightness(imgColourObjs[0]) > brightnessThreshold ? 3 : 2);
+    return this.fgColorIndex = colours.length - (KCol.brightness(imgColourObjs[3]) > brightnessThreshold ? 3 : 2);
   };
   return null;
 });
