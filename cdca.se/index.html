@@ -29,7 +29,7 @@
     }
     .color-select-item div {
       height: 40px;
-      width: 45px;
+      width: 40px;
     }
     .color-select-item.custom {
       background: url('ellipsislight.png') no-repeat center;
@@ -86,7 +86,7 @@
 
     <div class="clear-left float-left block">
       <h4>Cover art</h4>
-      <div><img id="coverart" ng-src="{{ ctrl.imgsrc }}" crossorigin="anonymous" class="medium-input" /></div>
+      <div><img id="coverart" ng-src="{{ ctrl.imgsrc }}" gm-load="ctrl.updateColours($event)" crossorigin="anonymous" class="medium-input" /></div>
     </div>
 
     <div class="float-left block">
@@ -139,6 +139,7 @@
   <div class="clear-left"></div>
 
   <!--<script src="https://www.google.com/jsapi"></script>-->
+  <script src="array-monkey-patches.js"></script>
   <script src="angular.min.js"></script>
   <script src="ui-bootstrap-tpls-0.11.2.min.js"></script>
   <script src="bootstrap-colorpicker-module.js"></script>

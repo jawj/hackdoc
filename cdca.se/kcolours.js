@@ -205,11 +205,23 @@ this.KCol = {
       };
     }
     throw "Invalid colour string '" + str + "'";
+  },
+  hexStringFromColour: function(col) {
+    var toTwoHexDigits;
+    toTwoHexDigits = function(n) {
+      var digits;
+      digits = n.toString(16);
+      if (digits.length < 2) {
+        digits = '0' + digits;
+      }
+      return digits;
+    };
+    return "#" + (toTwoHexDigits(col.r)) + (toTwoHexDigits(col.g)) + (toTwoHexDigits(col.b));
   }
 };
 
 this.KCol.defaults = {
-  k: 5,
+  k: 4,
   sampleFunc: KCol.randomPixelSamples,
   numSamples: 400,
   meanAttempts: 50,

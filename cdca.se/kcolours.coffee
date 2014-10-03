@@ -127,10 +127,16 @@
     rgb = str.match /^#?([0-9a-f])([0-9a-f])([0-9a-f])$/i
     return {r: parseInt(rgb[1] + rgb[1], 16), g: parseInt(rgb[2] + rgb[2], 16), b: parseInt(rgb[3] + rgb[3], 16)} if rgb
     throw "Invalid colour string '#{str}'"
-    
+  
+  hexStringFromColour: (col) ->
+    toTwoHexDigits = (n) ->
+      digits = n.toString(16)
+      digits = '0' + digits if digits.length < 2
+      digits
+    "##{toTwoHexDigits(col.r)}#{toTwoHexDigits(col.g)}#{toTwoHexDigits(col.b)}"
 
 @KCol.defaults =
-  k:            5     # max number of colours to extract
+  k:            4     # max number of colours to extract
   sampleFunc:   KCol.randomPixelSamples  # random or gridwise are built in
   numSamples:   400   # how many pixels to sample from full image
   meanAttempts: 50    # no. of times we try to find unique starting values within samples
