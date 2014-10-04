@@ -284,7 +284,7 @@ angular.module('cdca.se', ['ui.bootstrap', 'colorpicker.module']).constant('brig
           h: 11 * 72
         }
       };
-      pageSize = pageSizes[self.letter ? 'letter' : 'a4'];
+      pageSize = pageSizes[self.letterpaper ? 'letter' : 'a4'];
       if (self.times) {
         font = 'Times-Roman';
         fontBold = 'Times-Bold';

@@ -210,7 +210,7 @@ angular.module 'cdca.se', ['ui.bootstrap', 'colorpicker.module']
           w: 8.5 * 72
           h: 11 * 72
 
-      pageSize = pageSizes[if self.letter then 'letter' else 'a4']
+      pageSize = pageSizes[if self.letterpaper then 'letter' else 'a4']
 
       if self.times
         font     = 'Times-Roman'
