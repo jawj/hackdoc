@@ -23,8 +23,8 @@
                ng-focus="ctrl.getAlbums()" />
       </div>
       <div class="float-left block">
-        <h4>-</h4>
-        <input type="submit" class="btn btn-success" ng-class="{disabled: ! aaform.$valid}" value="Find" />
+        <h4 class="transparent">-</h4>
+        <input type="submit" class="btn btn-primary" ng-class="{disabled: ! aaform.$valid}" value="Find" />
         <input type="submit" class="btn btn-default" ng-click="ctrl.example()" value="Example" />
       </div>
     </form>
@@ -64,8 +64,7 @@
       <div class="block">
         <h4>Text colour</h4>
         <color-select colors="ctrl.fgColors" selected-index="ctrl.fgColorIndex" selected-color="ctrl.fgColor" customize-last></color-select> 
-      </div>
-      
+      </div>      
     </div>
 
     <div class="clear-left float-left block">
@@ -77,13 +76,18 @@
       <div id="font" ng-style="{'font-family': ctrl.times ? 'serif' : 'sans-serif'}">A</div>
     </div>
 
-    <div class="float-left block">
+    <div class="float-left block" style="width: 200px;">
       <h4>Paper size</h4>
       <div class="btn-group">
         <label class="btn btn-default" ng-model="ctrl.letterpaper" btn-radio="false">A4</label>
         <label class="btn btn-default" ng-model="ctrl.letterpaper" btn-radio="true">US Letter</label>
       </div>
       <div id="paper" ng-style="{width: ctrl.letterpaper ? '43.18px' : '42px', height: ctrl.letterpaper ? '55.88px' : '59.4px'}"></div>
+    </div>
+
+    <div class="float-left block" style="margin-left: 55px;">
+      <h4 class="transparent">-</h4>
+      <button class="btn btn-success" ng-click="ctrl.makePDF()">Make PDF</a>
     </div>
   </div>
 
