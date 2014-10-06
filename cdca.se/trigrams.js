@@ -177,7 +177,6 @@ Trigrams.Haystack = (function() {
       }
       return _results;
     })();
-    null;
   }
 
   Haystack.prototype.bestMatches = function(str, max, minQuality, maxQualityRange) {

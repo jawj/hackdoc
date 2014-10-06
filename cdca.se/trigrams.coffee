@@ -134,7 +134,6 @@ class Trigrams.Haystack
   constructor: (haystack) ->
     @trigrams = for str in haystack
       new Trigrams str
-    null
 
   bestMatches: (str, max = 5, minQuality = 0.4, maxQualityRange = 0.4) ->
     needle = new Trigrams str, yes

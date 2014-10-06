@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html ng-app="cdca.se">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" href="bootstrap.min.css">
+  <link rel="stylesheet" href="bootstrap-theme.min.css">
+  <link rel="stylesheet" href="colorpicker.css">
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body>
+
+  <div ng-controller="MainCtrl as ctrl">
+    <form name="aaform" ng-submit="ctrl.findAlbum()">
+      <div class="float-left block">
+        <h4>Artist</h4>
+        <input class="form-control medium-input" ng-model="ctrl.artist" name="artist" required 
+               typeahead="artist for artist in ctrl.artistsHaystack ? ctrl.artistsHaystack.bestMatches($viewValue) : []" />
+      </div>
+      <div class="float-left block">
+        <h4>Album</h4>
+        <input class="form-control medium-input" ng-model="ctrl.album" name="album" required 
+               typeahead="album for album in ctrl.albumHaystack ? ctrl.albumHaystack.bestMatches($viewValue) : []"
+               ng-focus="ctrl.getAlbums()" />
+      </div>
+      <div class="float-left block">
+        <h4 class="transparent">-</h4>
+        <input type="submit" class="btn btn-primary" ng-class="{disabled: ! aaform.$valid}" value="Find" />
+        <input type="submit" class="btn btn-default" ng-click="ctrl.example()" value="Example" />
+      </div>
+    </form>
+
+    <div class="clear-left float-left block">
+      <h4>Cover art</h4>
+      <div id="imgdiv">
+        <img id="coverart" ng-src="{{ ctrl.imgsrc }}" gm-load="ctrl.imgLoaded($event)" crossorigin="anonymous" class="medium-input" />
+        <img id="imgspinner" src="ajax-loader.gif" style="position: absolute;" ng-show="ctrl.imgloading" />
+      </div>
+    </div>
+
+    <div class="float-left block">
+      <h4>Track listing</h4>
+      <div id="tracklistdiv">
+        <textarea id="tracklisting" class="form-control medium-input" ng-model="ctrl.tracks" rows="12" 
+                  ng-style="{'background-color': ctrl.bgColor, color: ctrl.fgColor, 'font-family': ctrl.times ? 'serif' : 'sans-serif'}"></textarea>
+        <img id="tracklistspinner" src="ajax-loader.gif" style="position: absolute;" ng-show="ctrl.tracklistloading" />
+      </div>
+    </div>
+
+    <div class="float-left">
+      <div class="block">
+        <h4>Release date</h4>
+        <div><input class="form-control short-input" ng-model="ctrl.released" name="released" required /></div>
+      </div>
+
+      <div class="block">
+        <p><a ng-href="{{ ctrl.lastfmlink }}" target="_blank"><img src="lastfm_grey.gif" width="73" height="23" /></a></p>
+      </div>
+
+      <div class="block">
+        <h4>Background colour</h4>
+        <color-select colors="ctrl.bgColors" selected-index="ctrl.bgColorIndex" selected-color="ctrl.bgColor" customize-last></color-select> 
+      </div>
+
+      <div class="block">
+        <h4>Text colour</h4>
+        <color-select colors="ctrl.fgColors" selected-index="ctrl.fgColorIndex" selected-color="ctrl.fgColor" customize-last></color-select> 
+      </div>      
+    </div>
+
+    <div class="clear-left float-left block">
+      <h4>Font</h4>
+      <div class="btn-group">
+        <label class="btn btn-default" ng-model="ctrl.times" btn-radio="false">Sans-serif</label>
+        <label class="btn btn-default" ng-model="ctrl.times" btn-radio="true">Serif</label>
+      </div>
+      <div id="font" ng-style="{'font-family': ctrl.times ? 'serif' : 'sans-serif'}">A</div>
+    </div>
+
+    <div class="float-left block" style="width: 200px;">
+      <h4>Paper size</h4>
+      <div class="btn-group">
+        <label class="btn btn-default" ng-model="ctrl.letterpaper" btn-radio="false">A4</label>
+        <label class="btn btn-default" ng-model="ctrl.letterpaper" btn-radio="true">US Letter</label>
+      </div>
+      <div id="paper" ng-style="{width: ctrl.letterpaper ? '43.18px' : '42px', height: ctrl.letterpaper ? '55.88px' : '59.4px'}"></div>
+    </div>
+
+    <div class="float-left block" style="margin-left: 55px;">
+      <h4 class="transparent">-</h4>
+      <button class="btn btn-success" ng-click="ctrl.makePDF()">Make PDF</a>
+    </div>
+  </div>
+
+  <div class="clear-left"></div>
+
+  <!--<script src="https://www.google.com/jsapi"></script>-->
+  <script src="angular.min.js"></script>
+  <script src="ui-bootstrap-tpls-0.11.2.min.js"></script>
+  <script src="bootstrap-colorpicker-module.js"></script>
+  <script src="array-monkey-patches.js"></script>
+  <script src="kcolours.js"></script>
+  <script src="../affogato.js"></script>
+  <script src="../metrics.js"></script>
+  <script src="../hackdoc.js"></script>
+  <script src="trigrams.js"></script>
+  <script src="mtwist.js"></script>
+  <script src="ui.js"></script>
+  <script src="makepdf.js"></script>
+
+</body> 
+</html>
+
