@@ -87,9 +87,9 @@ angular.module 'cdca.se'
       KCol.brightness(KCol.colourFromHexString color) > brightnessThreshold
 
 
-.controller 'MainCtrl', ($http, $timeout, lastfmService, brightnessThreshold, makePDF, popularArtists, base64assets) ->
+.controller 'MainCtrl', ($http, $timeout, lastfmService, brightnessThreshold, makePDF, popularArtists) ->
   self = @
-  @base64assets = base64assets
+  blankImgURL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIAAAUAAeImBZsAAAAASUVORK5CYII='
 
   basicColours = ['#000', '#fff', '#888']
   @setColours = (colours = basicColours) -> 
@@ -99,14 +99,14 @@ angular.module 'cdca.se'
     @bgColorIndex = 1
 
   @setImgsrc = (imgsrc) ->
-    @imgsrc = base64assets.blank_png
+    @imgsrc = blankImgURL
     @imgloading = no
     if imgsrc?
       @imgsrc = imgsrc
       @imgloading = yes
 
   @getImgsrc = ->
-    if @imgsrc is base64assets.blank_png then null else @imgsrc
+    if @imgsrc is blankImgURL then null else @imgsrc
 
   @imgLoaded = (event) ->
     @imgloading = no

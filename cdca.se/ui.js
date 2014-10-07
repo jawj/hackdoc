@@ -92,10 +92,10 @@ angular.module('cdca.se').constant('brightnessThreshold', 180).factory('lastfmSe
       };
     }
   };
-}).controller('MainCtrl', function($http, $timeout, lastfmService, brightnessThreshold, makePDF, popularArtists, base64assets) {
-  var a, basicColours, exampleIndex, examples, nAmerica, self, _ref, _ref1, _ref2;
+}).controller('MainCtrl', function($http, $timeout, lastfmService, brightnessThreshold, makePDF, popularArtists) {
+  var a, basicColours, blankImgURL, exampleIndex, examples, nAmerica, self, _ref, _ref1, _ref2;
   self = this;
-  this.base64assets = base64assets;
+  blankImgURL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIAAAUAAeImBZsAAAAASUVORK5CYII=';
   basicColours = ['#000', '#fff', '#888'];
   this.setColours = function(colours) {
     if (colours == null) {
@@ -107,7 +107,7 @@ angular.module('cdca.se').constant('brightnessThreshold', 180).factory('lastfmSe
     return this.bgColorIndex = 1;
   };
   this.setImgsrc = function(imgsrc) {
-    this.imgsrc = base64assets.blank_png;
+    this.imgsrc = blankImgURL;
     this.imgloading = false;
     if (imgsrc != null) {
       this.imgsrc = imgsrc;
@@ -115,7 +115,7 @@ angular.module('cdca.se').constant('brightnessThreshold', 180).factory('lastfmSe
     }
   };
   this.getImgsrc = function() {
-    if (this.imgsrc === base64assets.blank_png) {
+    if (this.imgsrc === blankImgURL) {
       return null;
     } else {
       return this.imgsrc;
