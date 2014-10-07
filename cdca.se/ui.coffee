@@ -1,3 +1,16 @@
+###
+TODO
+Fix release date
+Fix colours for b/w albums
+Do sth nice with generated PDF (open new window?)
+Specify/upload own images?
+Design (logo etc.)
+Ads? Amazon links for CD cases? Etc.
+Test in Firefox, Safari, IE, (mobiles?)
+Upload to cdca.se and redo cache
+###
+
+
 angular.module 'cdca.se'
 
 .constant('brightnessThreshold', 180)
