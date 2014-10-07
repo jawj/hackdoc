@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "app.js",
+  "sourceRoot": "../../../../..",
+  "sources": [
+    "Users/George/Development/hackdoc/cdca.se/app.coffee"
+  ],
+  "names": [],
+  "mappings": ";AAAA,OAAO,CAAC,MAAR,CAAe,SAAf,EAA0B,CAAC,cAAD,EAAiB,oBAAjB,CAA1B,CAAA,CAAA"
+}

@@ -1,3 +1,6 @@
+angular.module('cdca.se')
+.value 'popularArtists', """
+
 The Beatles
 Bob Dylan
 The Rolling Stones
@@ -1012,3 +1015,5 @@ Zero 7
 Stornoway
 Cher
 Snow Patrol
+
+"""

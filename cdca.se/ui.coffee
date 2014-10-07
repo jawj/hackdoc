@@ -1,4 +1,4 @@
-angular.module 'cdca.se', ['ui.bootstrap', 'colorpicker.module']
+angular.module 'cdca.se'
 
 .constant('brightnessThreshold', 180)
 
@@ -74,8 +74,9 @@ angular.module 'cdca.se', ['ui.bootstrap', 'colorpicker.module']
       KCol.brightness(KCol.colourFromHexString color) > brightnessThreshold
 
 
-.controller 'MainCtrl', ($http, $timeout, lastfmService, brightnessThreshold, makePDF) ->
+.controller 'MainCtrl', ($http, $timeout, lastfmService, brightnessThreshold, makePDF, popularArtists, base64assets) ->
   self = @
+  @base64assets = base64assets
 
   basicColours = ['#000', '#fff', '#888']
   @setColours = (colours = basicColours) -> 
@@ -85,14 +86,14 @@ angular.module 'cdca.se', ['ui.bootstrap', 'colorpicker.module']
     @bgColorIndex = 1
 
   @setImgsrc = (imgsrc) ->
-    @imgsrc = 'blank.png'
+    @imgsrc = base64assets.blank_png
     @imgloading = no
     if imgsrc?
       @imgsrc = imgsrc
       @imgloading = yes
 
   @getImgsrc = ->
-    if @imgsrc.match /\bblank\.png$/ then null else @imgsrc
+    if @imgsrc is base64assets.blank_png then null else @imgsrc
 
   @imgLoaded = (event) ->
     @imgloading = no
@@ -134,8 +135,7 @@ angular.module 'cdca.se', ['ui.bootstrap', 'colorpicker.module']
     exampleIndex = 0 if exampleIndex >= examples.length
     [@artist, @album] = example.split '/'
 
-  $http.get('artists.txt').success (artists) ->
-    self.artistsHaystack = new Trigrams.Haystack artists.split "\n"
+  @artistsHaystack = new Trigrams.Haystack (a for a in popularArtists.split /\s*\n\s*/ when a isnt '')
 
   @getAlbums = ->
     self.albumHaystack = null

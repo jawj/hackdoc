@@ -33,7 +33,7 @@
       <h4>Cover art</h4>
       <div id="imgdiv">
         <img id="coverart" ng-src="{{ ctrl.imgsrc }}" gm-load="ctrl.imgLoaded($event)" crossorigin="anonymous" class="medium-input" />
-        <img id="imgspinner" src="ajax-loader.gif" style="position: absolute;" ng-show="ctrl.imgloading" />
+        <img id="imgspinner" ng-src="{{ ::ctrl.base64assets.ajaxloader_gif }}" style="position: absolute;" ng-show="ctrl.imgloading" />
       </div>
     </div>
 
@@ -42,7 +42,7 @@
       <div id="tracklistdiv">
         <textarea id="tracklisting" class="form-control medium-input" ng-model="ctrl.tracks" rows="12" 
                   ng-style="{'background-color': ctrl.bgColor, color: ctrl.fgColor, 'font-family': ctrl.times ? 'serif' : 'sans-serif'}"></textarea>
-        <img id="tracklistspinner" src="ajax-loader.gif" style="position: absolute;" ng-show="ctrl.tracklistloading" />
+        <img id="tracklistspinner" ng-src="{{ ::ctrl.base64assets.ajaxloader_gif }}" style="position: absolute;" ng-show="ctrl.tracklistloading" />
       </div>
     </div>
 
@@ -53,7 +53,7 @@
       </div>
 
       <div class="block">
-        <p><a ng-href="{{ ctrl.lastfmlink }}" target="_blank"><img src="lastfm_grey.gif" width="73" height="23" /></a></p>
+        <p><a ng-href="{{ ctrl.lastfmlink }}" target="_blank"><img ng-src="{{ ::ctrl.base64assets.lastfm_gif }}" width="73" height="23" /></a></p>
       </div>
 
       <div class="block">
@@ -93,7 +93,7 @@
 
   <div class="clear-left"></div>
 
-  <!--<script src="https://www.google.com/jsapi"></script>-->
+  <script src="https://www.google.com/jsapi"></script>
   <script src="angular.min.js"></script>
   <script src="ui-bootstrap-tpls-0.11.2.min.js"></script>
   <script src="bootstrap-colorpicker-module.js"></script>
@@ -104,8 +104,11 @@
   <script src="../hackdoc.js"></script>
   <script src="trigrams.js"></script>
   <script src="mtwist.js"></script>
-  <script src="ui.js"></script>
+  <script src="app.js"></script>
+  <script src="base64assets.js"></script>
+  <script src="artists.js"></script>
   <script src="makepdf.js"></script>
+  <script src="ui.js"></script>
 
 </body> 
 </html>

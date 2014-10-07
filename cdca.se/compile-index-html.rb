@@ -1,14 +1,13 @@
 #!/usr/bin/env ruby
-# bring all local scripts + styles inline, minifying
 
 def pipe cmd, stdin
   IO.popen(cmd, 'w+') { |io| io.write(stdin); io.close_write; io.read }
 end
 
-
 # HTML
-html = pipe('html-minifier --remove-comments --collapse-whitespace --remove-redundant-attributes', open('source.html').read)
 
+html = File.read('source.html')
+html = pipe 'html-minifier --remove-comments --collapse-whitespace --remove-redundant-attributes', html
 
 # CSS
 
@@ -17,17 +16,25 @@ html.gsub!(%r{<link\s+[^>]*href="[^"]+\.css"[^>]*>\s*}) do |tag|
   css = tag.match(/(?<=href=").+(?=")/)[0]
   puts
   puts css
-  style = open(css).read
+  style = File.read css
   if ! css.match(%r{[.]min[.]})  # don't harass already-minified styles
     style = pipe('cleancss', style)
+    style.gsub!(/(?<=url\()[^)]+(?=\))/) do |url|
+      if url.match %r{^data:|//}  # don't touch remote or already-base64 files
+        url
+      else
+        content = open(url, 'rb') { |f| f.read }
+        ext = url.match(/[^.]+$/)[0]
+        "data:image/#{ext};base64,#{[content].pack('m').gsub(/\s+/, '')}"
+      end
+    end
   end
   allStyle += style
   ''
 end
 
-htmlParts = html.split '</head>'  # cannot do this with sub! because of interpreting of replacement string!
+htmlParts = html.split '</head>'  # cannot do this with sub! because of interpreting of replacement string
 html = htmlParts[0] + "<style>#{allStyle}</style>\n</head>" + htmlParts[1]
-
 
 # JS
 
@@ -39,7 +46,7 @@ html.gsub!(%r{<script src="[^"]+"></script>\s*}) do |tag|
   else
     puts
     puts js
-    src = open(js).read
+    src = File.read js
     if ! js.match(%r{[.]min[.]})  # don't harass already-minified scripts
       if src.match /angular/
         puts ' - annotating'
