@@ -2,6 +2,7 @@
 
 body { margin: 10px 20px; }
 h4 { font-size: 12pt; margin: 0 0 10px; }
+button { font-size: 1.5em !important; }
 #paper { border: 1px solid #aaa; box-shadow: 1px 1px 2px #ccc; transition: width 0.25s, height 0.25s; float: left; position: relative; top: -25px; left: 10px; }
 #font { font-size: 40pt; float: left; position: relative; top: -25px; left: 10px; width: 60px; }
 .btn-group { float: left; }
@@ -9,9 +10,12 @@ h4 { font-size: 12pt; margin: 0 0 10px; }
 #coverart { height: 275px; border: 1px solid #ccc; }
 #imgspinner, #tracklistspinner { position: absolute; top: 132px; left: 129px; }
 #tracklisting { height: 275px; }
+#imgsrc { margin-top: 5px; }
 .short-input { width: 100px; }
+.extramedium-input { width: 175px; }
 .medium-input { width: 275px; }
 .block { padding: 10px; }
+.search { background: #ddd; margin-top: 20px; margin-bottom: 10px; }
 .float-left { float: left; }
 .clear-left { clear: left; }
 .transparent { color: rgba(255, 255, 255, 0); }

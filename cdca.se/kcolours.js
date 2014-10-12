@@ -18,9 +18,6 @@ this.KCol = {
     means.sort(function(a, b) {
       return a.sampleCount < b.sampleCount;
     });
-    if (opts.includeColours != null) {
-      means = opts.includeColours.concat(means);
-    }
     means = KCol.eliminateSimilar(means, opts);
     _results = [];
     for (_i = 0, _len = means.length; _i < _len; _i++) {
@@ -147,7 +144,17 @@ this.KCol = {
     return null;
   },
   eliminateSimilar: function(means, opts) {
-    var distinctMeans, i, j, mean, prevMean, similar, _i, _j, _len;
+    var distinctMeans, i, j, k, mean, prevMean, similar, v, _i, _j, _len, _ref;
+    if (opts == null) {
+      opts = {};
+    }
+    _ref = KCol.defaults;
+    for (k in _ref) {
+      v = _ref[k];
+      if (opts[k] == null) {
+        opts[k] = v;
+      }
+    }
     distinctMeans = [];
     for (i = _i = 0, _len = means.length; _i < _len; i = ++_i) {
       mean = means[i];
@@ -168,13 +175,70 @@ this.KCol = {
   randInt: function(lt) {
     return Math.floor(KCol.random() * lt * 0.999999999999);
   },
+
+  /*
+  colourDistance: (c1, c2) ->  # 0 - 100, see http://compuphase.com/cmetric.htm
+    rMean = (c1.r + c2.r) / 2
+    r = c1.r - c2.r
+    g = c1.g - c2.g
+    b = c1.b - c2.b
+    Math.sqrt((2 + rMean / 256) * r * r + 4 * g * g + (2 + (255 - rMean) / 256) * b * b) / 7.64834
+   */
   colourDistance: function(c1, c2) {
-    var b, g, r, rMean;
-    rMean = (c1.r + c2.r) / 2;
-    r = c1.r - c2.r;
-    g = c1.g - c2.g;
-    b = c1.b - c2.b;
-    return Math.sqrt((2 + rMean / 256) * r * r + 4 * g * g + (2 + (255 - rMean) / 256) * b * b) / 7.64834;
+    var delta, k, lab1, lab2, rgb2xyz, sum, v1, v2, xyz2Lab;
+    rgb2xyz = function(rgb1) {
+      var k, rgb2, v;
+      rgb2 = {};
+      for (k in rgb1) {
+        v = rgb1[k];
+        v /= 255;
+        rgb2[k] = v > 0.04045 ? Math.pow((v + 0.055) / 1.055, 2.4) : v / 12.92;
+      }
+      return {
+        x: rgb2.r * 0.4124 + rgb2.g * 0.3576 + rgb2.b * 0.1805,
+        y: rgb2.r * 0.2126 + rgb2.g * 0.7152 + rgb2.b * 0.0722,
+        z: rgb2.r * 0.0193 + rgb2.g * 0.1192 + rgb2.b * 0.9505
+      };
+    };
+    xyz2Lab = function(xyz1) {
+      var k, v, xyz2;
+      xyz2 = {
+        x: xyz1.x / 95.047,
+        y: xyz1.y / 100,
+        z: xyz1.z / 108.883
+      };
+      for (k in xyz2) {
+        v = xyz2[k];
+        xyz2[k] = v > 0.008856 ? Math.pow(v, 1 / 3) : 7.787 * v + 16 / 116;
+      }
+      return {
+        L: (116 * xyz2.y) - 16,
+        a: 500 * (xyz2.x - xyz2.y),
+        b: 200 * (xyz2.y - xyz2.z)
+      };
+    };
+    lab1 = xyz2Lab(rgb2xyz(c1));
+    lab2 = xyz2Lab(rgb2xyz(c2));
+    sum = 0;
+    for (k in lab1) {
+      v1 = lab1[k];
+      v2 = lab2[k];
+      delta = v1 - v2;
+      sum += delta * delta;
+    }
+    return Math.sqrt(sum);
+  },
+  nearestToColourOutOfColours: function(c1, cs) {
+    var c2, closestColour, distance, smallestDistance, _i, _len;
+    smallestDistance = Infinity;
+    for (_i = 0, _len = cs.length; _i < _len; _i++) {
+      c2 = cs[_i];
+      if ((distance = KCol.colourDistance(c1, c2)) < smallestDistance) {
+        closestColour = c2;
+        smallestDistance = distance;
+      }
+    }
+    return closestColour;
   },
   brightness: function(c) {
     return Math.sqrt(c.r * c.r * 0.241 + c.g * c.g * 0.691 + c.b * c.b * 0.068);
@@ -221,12 +285,12 @@ this.KCol = {
 };
 
 this.KCol.defaults = {
-  k: 4,
+  k: 3,
   sampleFunc: KCol.randomPixelSamples,
-  numSamples: 400,
+  numSamples: 1000,
   meanAttempts: 50,
-  iterations: 30,
-  minDistance: 10
+  iterations: 35,
+  minDistance: 0.38
 };
 
 this.KCol.random = Math.random;

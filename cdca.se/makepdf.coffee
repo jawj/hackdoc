@@ -35,10 +35,8 @@ angular.module 'cdca.se'
   bgCol = [bgCol.r / 255, bgCol.g / 255, bgCol.b / 255]
   fgCol = [fgCol.r / 255, fgCol.g / 255, fgCol.b / 255]
 
-  insideText = if releaseStr? then "Released: #{releaseStr}" else ''
-
   insideSize = 10
-  insideFlow = PDFText.preprocessPara insideText, font
+  insideFlow = PDFText.preprocessPara opts.insideText, font
   insidePara = PDFText.flowPara insideFlow, insideSize, maxWidth: fix mm2pt 100
   
   numRe = /^(\d+)\.\s+/
@@ -83,10 +81,11 @@ angular.module 'cdca.se'
     /AlbumArt Do
     Q
     
-    q  % release date
+    q  % inside text
     1 0 0 1 #{fix mm2pt 83} #{fix pageSizes.a4.h - mm2pt 248} cm  % scaleX 0 0 scaleY trnslX trnslY cm
     0 1 -1 0 0 0 cm  % rotate 90deg a-cw
     BT
+    #{fgCol.join ' '} rg  % fill colour
     /Fnt #{insideSize} Tf
     #{insidePara.commands}
     ET
@@ -218,10 +217,6 @@ angular.module 'cdca.se'
       >>
     >>
     """, num: 24
-  
-  filename = "#{opts.artist} #{opts.album}".toLowerCase().replace(/\s+/g, '_').replace(/\W+/g, '') + '.pdf'
-  pdf.linkAsync filename, (link) ->
-    link.appendChild text 'PDF'
-    get(tag: 'body').appendChild link
 
+  pdf.toBlob()
     

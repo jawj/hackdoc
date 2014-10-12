@@ -1,8 +1,6 @@
 ###
 TODO
-Fix release date
-Fix colours for b/w albums
-Do sth nice with generated PDF (open new window?)
+Deal nicely with missing image
 Specify/upload own images?
 Design (logo etc.)
 Ads? Amazon links for CD cases? Etc.
@@ -74,10 +72,12 @@ angular.module 'cdca.se'
 
     $scope.$watch 'selectedIndex', ->
       $scope.selectedColor = $scope.colors[$scope.selectedIndex]
+      $scope.customColor = $scope.selectedColor
 
     $scope.$watch 'colors', ->
       if $scope.selectedIndex > $scope.colors.length - 1 then $scope.selectedIndex = $scope.colors.length - 1
       $scope.selectedColor = $scope.colors[$scope.selectedIndex]
+      $scope.customColor = $scope.selectedColor
 
     $scope.clickedIndex = (i) ->
       $scope.selectedIndex = i
@@ -91,8 +91,10 @@ angular.module 'cdca.se'
   self = @
   blankImgURL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIAAAUAAeImBZsAAAAASUVORK5CYII='
 
-  basicColours = ['#000', '#fff', '#888']
-  @setColours = (colours = basicColours) -> 
+  $http.get('template.pdf', responseType: 'arraybuffer').success (pdfTemplate) -> self.pdfTemplate = pdfTemplate
+
+  basicColours = ['#000', '#fff']
+  @setColours = (colours = basicColours.concat '#ffffff') -> 
     @fgColors = colours[..]
     @bgColors = colours[..]
     @fgColorIndex = 0
@@ -170,7 +172,8 @@ angular.module 'cdca.se'
       self.artist = album.artist
       self.album = album.name
       self.lastfmlink = album.url
-      self.released = albumData.album.releasedate?.match(/\b\w+ (19|20)\d\d\b/)?[0]
+      releaseDate = albumData.album.releasedate?.match(/\b\w+ (19|20)\d\d\b/)?[0]
+      self.insideText = if releaseDate? then "Released: #{releaseDate}" else ''
 
       if tracks = albumData.album.tracks?.track
         trackTexts = for t, i in tracks
@@ -189,23 +192,35 @@ angular.module 'cdca.se'
       if imgUrl?
         proxiedUrl = imgUrl.replace(/^http:\//, 'http://mackerron.com/cdcase.images.proxy')
         self.setImgsrc proxiedUrl
+  
+  @loadLocalImg = (e) ->
+    console.log e
+    fr = new FileReader()
+    fr.onloadend = ->
+      @setImgsrc fr.result
+    fr.readAsDataURL e.target.files[0]
 
   @updateColours = (img) ->
-    KCol.random = new MTwist(31415926).random
-    imgColourObjs = KCol.colours img: img, includeColours: (KCol.colourFromHexString bc for bc in basicColours)
-    imgColours = (KCol.hexStringFromColour ico for ico in imgColourObjs)
-    colours = [imgColours[3..]..., basicColours...]
-    @setColours colours
-    @bgColorIndex = 0
-    bgColor = KCol.colourFromHexString colours[@bgColorIndex]
-    @fgColorIndex = colours.length - if KCol.brightness(bgColor) > brightnessThreshold then 3 else 2
+    KCol.random = new MTwist(123456789).random  # fixed seed gives repeatable colour results for the same image
+    imgColourObjs = KCol.colours img: img
+    dominantColorObj = imgColourObjs[0]
+    basicColourObjs = (KCol.colourFromHexString c for c in basicColours)
+    allColourObjs = basicColourObjs.concat imgColourObjs
+    dedupedColourObjs = KCol.eliminateSimilar allColourObjs
+    rearrangedColourObjs = dedupedColourObjs[2..].concat dedupedColourObjs[0..1]
+    bgColorObj = KCol.nearestToColourOutOfColours dominantColorObj, rearrangedColourObjs
+    colourHexStrings = (KCol.hexStringFromColour c for c in rearrangedColourObjs).concat '#ffffff'
+    @setColours colourHexStrings
+    @bgColorIndex = rearrangedColourObjs.indexOf bgColorObj
+    @fgColorIndex = colourHexStrings.length - if KCol.brightness(bgColorObj) > brightnessThreshold then 3 else 2
 
   @makePDF = ->
-    $http.get('template.pdf', responseType: 'arraybuffer').success (pdfTemplate) ->
-      self.pdfTemplate = pdfTemplate
-      makePDF self
+    blob = makePDF self
+    if navigator.msSaveOrOpenBlob?
+      filename = "#{@artist} #{@album}".toLowerCase().replace(/\s+/g, '_').replace(/\W+/g, '') + '.pdf'
+      navigator.msSaveOrOpenBlob blob, filename
+    else
+      open URL.createObjectURL blob
       
-
   null
-
 

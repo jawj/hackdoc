@@ -2,28 +2,30 @@
 <html ng-app="cdca.se">
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-  <script src="https://www.google.com/jsapi"></script>
+  <!--<script src="https://www.google.com/jsapi"></script>-->
   <link rel="stylesheet" href="bootstrap.min.css">
   <link rel="stylesheet" href="bootstrap-theme.min.css">
   <link rel="stylesheet" href="colorpicker.css">
   <link rel="stylesheet" href="ui.css">
 </head>
 <body>
-
+  <div class="block">
+    <img src="cdcase.png" width="189" height="47" />
+  </div>
   <div ng-controller="MainCtrl as ctrl">
     <form name="aaform" ng-submit="ctrl.findAlbum()">
-      <div class="float-left block">
+      <div class="float-left block search">
         <h4>Artist</h4>
         <input class="form-control medium-input" ng-model="ctrl.artist" name="artist" required 
-               typeahead="artist for artist in ctrl.artistsHaystack ? ctrl.artistsHaystack.bestMatches($viewValue) : []" />
+               typeahead="artist for artist in ctrl.artistsHaystack ? ctrl.artistsHaystack.bestMatchesFor($viewValue) : []" />
       </div>
-      <div class="float-left block">
+      <div class="float-left block search">
         <h4>Album</h4>
         <input class="form-control medium-input" ng-model="ctrl.album" name="album" required 
-               typeahead="album for album in ctrl.albumHaystack ? ctrl.albumHaystack.bestMatches($viewValue) : []"
+               typeahead="album for album in ctrl.albumHaystack ? ctrl.albumHaystack.bestMatchesFor($viewValue) : []"
                ng-focus="ctrl.getAlbums()" />
       </div>
-      <div class="float-left block">
+      <div class="float-left block search">
         <h4 class="transparent">-</h4>
         <input type="submit" class="btn btn-primary" ng-class="{disabled: ! aaform.$valid}" value="Find" />
         <input type="submit" class="btn btn-default" ng-click="ctrl.example()" value="Example" />
@@ -35,6 +37,10 @@
       <div id="imgdiv">
         <img id="coverart" ng-src="{{ ctrl.imgsrc }}" gm-load="ctrl.imgLoaded($event)" crossorigin="anonymous" class="medium-input" />
         <img id="imgspinner" src="ajax-loader.gif" style="position: absolute;" ng-show="ctrl.imgloading" />
+      </div>
+      <div id="imgsrc">
+        <input class="form-control medium-input" ng-model="ctrl.imgsrc" name="imgsrc" />
+        <input type="file" ng-model="ctrl.localimgsrc" ng-change="ctrl.loadLocalImg($event)" />
       </div>
     </div>
 
@@ -49,8 +55,8 @@
 
     <div class="float-left">
       <div class="block">
-        <h4>Release date</h4>
-        <div><input class="form-control short-input" ng-model="ctrl.released" name="released" required /></div>
+        <h4>Other info</h4>
+        <div><input class="form-control extramedium-input" ng-model="ctrl.insideText" name="released" required /></div>
       </div>
 
       <div class="block">
@@ -86,9 +92,8 @@
       <div id="paper" ng-style="{width: ctrl.letterpaper ? '43.18px' : '42px', height: ctrl.letterpaper ? '55.88px' : '59.4px'}"></div>
     </div>
 
-    <div class="float-left block" style="margin-left: 55px;">
-      <h4 class="transparent">-</h4>
-      <button class="btn btn-success" ng-click="ctrl.makePDF()">Make PDF</a>
+    <div class="float-left block" style="margin-left: 22px; margin-top: 22px;">
+      <button class="btn btn-success" ng-click="ctrl.makePDF()">Make PDF</button>
     </div>
   </div>
 

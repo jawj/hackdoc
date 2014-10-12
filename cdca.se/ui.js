@@ -2,17 +2,13 @@
 
 /*
 TODO
-Fix release date
-Fix colours for b/w albums
-Do sth nice with generated PDF (open new window?)
+Deal nicely with missing image
 Specify/upload own images?
 Design (logo etc.)
 Ads? Amazon links for CD cases? Etc.
 Test in Firefox, Safari, IE, (mobiles?)
 Upload to cdca.se and redo cache
  */
-var __slice = [].slice;
-
 angular.module('cdca.se').constant('brightnessThreshold', 180).factory('lastfmService', function($http) {
   return {
     query: function(params) {
@@ -75,13 +71,15 @@ angular.module('cdca.se').constant('brightnessThreshold', 180).factory('lastfmSe
         return $scope.selectedColor = $scope.colors[$scope.selectedIndex];
       });
       $scope.$watch('selectedIndex', function() {
-        return $scope.selectedColor = $scope.colors[$scope.selectedIndex];
+        $scope.selectedColor = $scope.colors[$scope.selectedIndex];
+        return $scope.customColor = $scope.selectedColor;
       });
       $scope.$watch('colors', function() {
         if ($scope.selectedIndex > $scope.colors.length - 1) {
           $scope.selectedIndex = $scope.colors.length - 1;
         }
-        return $scope.selectedColor = $scope.colors[$scope.selectedIndex];
+        $scope.selectedColor = $scope.colors[$scope.selectedIndex];
+        return $scope.customColor = $scope.selectedColor;
       });
       $scope.clickedIndex = function(i) {
         $scope.selectedIndex = i;
@@ -96,10 +94,15 @@ angular.module('cdca.se').constant('brightnessThreshold', 180).factory('lastfmSe
   var a, basicColours, blankImgURL, exampleIndex, examples, nAmerica, self, _ref, _ref1, _ref2;
   self = this;
   blankImgURL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIAAAUAAeImBZsAAAAASUVORK5CYII=';
-  basicColours = ['#000', '#fff', '#888'];
+  $http.get('template.pdf', {
+    responseType: 'arraybuffer'
+  }).success(function(pdfTemplate) {
+    return self.pdfTemplate = pdfTemplate;
+  });
+  basicColours = ['#000', '#fff'];
   this.setColours = function(colours) {
     if (colours == null) {
-      colours = basicColours;
+      colours = basicColours.concat('#ffffff');
     }
     this.fgColors = colours.slice(0);
     this.bgColors = colours.slice(0);
@@ -204,13 +207,14 @@ angular.module('cdca.se').constant('brightnessThreshold', 180).factory('lastfmSe
       album: this.album,
       autocorrect: '1'
     }).success(function(albumData) {
-      var album, i, img, imgUrl, imgs, mins, proxiedUrl, secs, size, t, trackTexts, tracks, _i, _j, _len, _len1, _ref3, _ref4, _ref5, _ref6, _ref7;
+      var album, i, img, imgUrl, imgs, mins, proxiedUrl, releaseDate, secs, size, t, trackTexts, tracks, _i, _j, _len, _len1, _ref3, _ref4, _ref5, _ref6, _ref7;
       self.tracklistloading = false;
       album = albumData.album;
       self.artist = album.artist;
       self.album = album.name;
       self.lastfmlink = album.url;
-      self.released = (_ref3 = albumData.album.releasedate) != null ? (_ref4 = _ref3.match(/\b\w+ (19|20)\d\d\b/)) != null ? _ref4[0] : void 0 : void 0;
+      releaseDate = (_ref3 = albumData.album.releasedate) != null ? (_ref4 = _ref3.match(/\b\w+ (19|20)\d\d\b/)) != null ? _ref4[0] : void 0 : void 0;
+      self.insideText = releaseDate != null ? "Released: " + releaseDate : '';
       if (tracks = (_ref5 = albumData.album.tracks) != null ? _ref5.track : void 0) {
         trackTexts = (function() {
           var _i, _len, _results;
@@ -248,43 +252,57 @@ angular.module('cdca.se').constant('brightnessThreshold', 180).factory('lastfmSe
       }
     });
   };
+  this.loadLocalImg = function(e) {
+    var fr;
+    console.log(e);
+    fr = new FileReader();
+    fr.onloadend = function() {
+      return this.setImgsrc(fr.result);
+    };
+    return fr.readAsDataURL(e.target.files[0]);
+  };
   this.updateColours = function(img) {
-    var bc, bgColor, colours, ico, imgColourObjs, imgColours;
-    KCol.random = new MTwist(31415926).random;
+    var allColourObjs, basicColourObjs, bgColorObj, c, colourHexStrings, dedupedColourObjs, dominantColorObj, imgColourObjs, rearrangedColourObjs;
+    KCol.random = new MTwist(123456789).random;
     imgColourObjs = KCol.colours({
-      img: img,
-      includeColours: (function() {
-        var _i, _len, _results;
-        _results = [];
-        for (_i = 0, _len = basicColours.length; _i < _len; _i++) {
-          bc = basicColours[_i];
-          _results.push(KCol.colourFromHexString(bc));
-        }
-        return _results;
-      })()
+      img: img
     });
-    imgColours = (function() {
+    dominantColorObj = imgColourObjs[0];
+    basicColourObjs = (function() {
       var _i, _len, _results;
       _results = [];
-      for (_i = 0, _len = imgColourObjs.length; _i < _len; _i++) {
-        ico = imgColourObjs[_i];
-        _results.push(KCol.hexStringFromColour(ico));
+      for (_i = 0, _len = basicColours.length; _i < _len; _i++) {
+        c = basicColours[_i];
+        _results.push(KCol.colourFromHexString(c));
       }
       return _results;
     })();
-    colours = __slice.call(imgColours.slice(3)).concat(__slice.call(basicColours));
-    this.setColours(colours);
-    this.bgColorIndex = 0;
-    bgColor = KCol.colourFromHexString(colours[this.bgColorIndex]);
-    return this.fgColorIndex = colours.length - (KCol.brightness(bgColor) > brightnessThreshold ? 3 : 2);
+    allColourObjs = basicColourObjs.concat(imgColourObjs);
+    dedupedColourObjs = KCol.eliminateSimilar(allColourObjs);
+    rearrangedColourObjs = dedupedColourObjs.slice(2).concat(dedupedColourObjs.slice(0, 2));
+    bgColorObj = KCol.nearestToColourOutOfColours(dominantColorObj, rearrangedColourObjs);
+    colourHexStrings = ((function() {
+      var _i, _len, _results;
+      _results = [];
+      for (_i = 0, _len = rearrangedColourObjs.length; _i < _len; _i++) {
+        c = rearrangedColourObjs[_i];
+        _results.push(KCol.hexStringFromColour(c));
+      }
+      return _results;
+    })()).concat('#ffffff');
+    this.setColours(colourHexStrings);
+    this.bgColorIndex = rearrangedColourObjs.indexOf(bgColorObj);
+    return this.fgColorIndex = colourHexStrings.length - (KCol.brightness(bgColorObj) > brightnessThreshold ? 3 : 2);
   };
   this.makePDF = function() {
-    return $http.get('template.pdf', {
-      responseType: 'arraybuffer'
-    }).success(function(pdfTemplate) {
-      self.pdfTemplate = pdfTemplate;
-      return makePDF(self);
-    });
+    var blob, filename;
+    blob = makePDF(self);
+    if (navigator.msSaveOrOpenBlob != null) {
+      filename = ("" + this.artist + " " + this.album).toLowerCase().replace(/\s+/g, '_').replace(/\W+/g, '') + '.pdf';
+      return navigator.msSaveOrOpenBlob(blob, filename);
+    } else {
+      return open(URL.createObjectURL(blob));
+    }
   };
   return null;
 });

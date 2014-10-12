@@ -2,13 +2,11 @@
 @KCol =
   colours: (opts) ->  # opts.img is the only required option
     opts[k] ?= v for k, v of KCol.defaults
-
     pixelArr = KCol.pixelArray opts
     samples = opts.sampleFunc pixelArr, opts  
     means = KCol.startingValues samples, opts
     KCol.iterate means, samples, opts unless means.length < opts.k
     means.sort (a, b) -> a.sampleCount < b.sampleCount  # sort most 'representative' first
-    means = opts.includeColours.concat means if opts.includeColours?
     means = KCol.eliminateSimilar means, opts
     KCol.rgbRound mean for mean in means
 
@@ -93,7 +91,8 @@
     
     null
   
-  eliminateSimilar: (means, opts) ->
+  eliminateSimilar: (means, opts = {}) ->
+    opts[k] ?= v for k, v of KCol.defaults
     distinctMeans = []
     for mean, i in means
       similar = no
@@ -108,12 +107,54 @@
   randInt: (lt) ->  # returns int between 0 and lt - 1 
     Math.floor(KCol.random() * lt * 0.999999999999)  # because Math.random() occasionally returns 1
 
+  ###
   colourDistance: (c1, c2) ->  # 0 - 100, see http://compuphase.com/cmetric.htm
     rMean = (c1.r + c2.r) / 2
     r = c1.r - c2.r
     g = c1.g - c2.g
     b = c1.b - c2.b
     Math.sqrt((2 + rMean / 256) * r * r + 4 * g * g + (2 + (255 - rMean) / 256) * b * b) / 7.64834
+  ###
+  
+  colourDistance: (c1, c2) ->  # http://www.easyrgb.com/index.php?X=MATH + http://en.wikipedia.org/wiki/Lab_color_space#Perceptual_differences
+    rgb2xyz = (rgb1) ->
+      rgb2 = {}
+      for k, v of rgb1
+        v /= 255
+        rgb2[k] = if v > 0.04045 then Math.pow (v + 0.055) / 1.055, 2.4 else v / 12.92
+      { 
+        x: rgb2.r * 0.4124 + rgb2.g * 0.3576 + rgb2.b * 0.1805
+        y: rgb2.r * 0.2126 + rgb2.g * 0.7152 + rgb2.b * 0.0722
+        z: rgb2.r * 0.0193 + rgb2.g * 0.1192 + rgb2.b * 0.9505 } 
+
+    xyz2Lab = (xyz1) ->
+      xyz2 =
+        x: xyz1.x / 95.047
+        y: xyz1.y / 100
+        z: xyz1.z / 108.883
+      for k, v of xyz2
+        xyz2[k] = if v > 0.008856 then Math.pow(v, 1 / 3) else 7.787 * v + 16 / 116
+      {
+        L: (116 * xyz2.y) - 16
+        a: 500 * (xyz2.x - xyz2.y)
+        b: 200 * (xyz2.y - xyz2.z) }
+
+    lab1 = xyz2Lab rgb2xyz c1
+    lab2 = xyz2Lab rgb2xyz c2
+    sum = 0
+    for k, v1 of lab1
+      v2 = lab2[k]
+      delta = v1 - v2
+      sum += delta * delta
+    Math.sqrt sum
+
+  nearestToColourOutOfColours: (c1, cs) ->
+    smallestDistance = Infinity
+    for c2 in cs
+      if (distance = KCol.colourDistance(c1, c2)) < smallestDistance
+        closestColour = c2
+        smallestDistance = distance
+    closestColour
 
   brightness: (c) ->  # 0 - 255, see http://www.nbdtech.com/Blog/archive/2008/04/27/Calculating-the-Perceived-Brightness-of-a-Color.aspx
     Math.sqrt c.r * c.r * 0.241 + c.g * c.g * 0.691 + c.b * c.b * 0.068
@@ -135,12 +176,13 @@
       digits
     "##{toTwoHexDigits(col.r)}#{toTwoHexDigits(col.g)}#{toTwoHexDigits(col.b)}"
 
+
 @KCol.defaults =
-  k:            4     # max number of colours to extract
+  k:            3     # max number of colours to extract
   sampleFunc:   KCol.randomPixelSamples  # random or gridwise are built in
-  numSamples:   400   # how many pixels to sample from full image
+  numSamples:   1000  # how many pixels to sample from full image
   meanAttempts: 50    # no. of times we try to find unique starting values within samples
-  iterations:   30    # most pics converge in 15 - 25; the rest change little subsequently
-  minDistance:  10    # eliminate colours from output that are closer together than this
+  iterations:   35    # most pics converge in 15 - 25; the rest change little subsequently
+  minDistance:  0.38   # eliminate colours from output that are closer together than this
 
 @KCol.random = Math.random

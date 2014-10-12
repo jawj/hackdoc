@@ -8,7 +8,7 @@ end
 def dataURIForImage url
   fileext = url.match(/[^.]+$/)[0]
   content = open(url, 'rb') { |f| f.read }
-  "data:image/#{fileext};base64,#{[content].pack('m').gsub(/\s+/, '')}"
+  "data:image/#{fileext};base64,#{[content].pack 'm0'}"
 end
 
 doc = Nokogiri::HTML File.open 'source.html'
